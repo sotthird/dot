@@ -1,0 +1,33 @@
+# ESP-IDF
+build/
+managed_components/
+dependencies.lock
+sdkconfig
+sdkconfig.old
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets
+.env
+host/.env
+host/.cache
+.cache
+
+# IDE / tools
+.claude/
+.clangd
+.vscode/
+.idea/
+*.swp
+.ruff_cache/
+
+# OS
+.DS_Store
+
+# Logs
+*.log

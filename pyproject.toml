@@ -1,3 +1,22 @@
+[project]
+name = "dot"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "certifi==2026.5.20",
+    "charset-normalizer==3.4.7",
+    "dotenv==0.9.9",
+    "idna==3.18",
+    "pip==25.1.1",
+    "psutil==7.2.2",
+    "pyserial==3.5",
+    "python-dotenv==1.2.2",
+    "redis==8.0.0",
+    "requests==2.34.2",
+    "spotipy==2.26.0",
+    "urllib3==2.7.0",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -5,8 +24,14 @@ exclude = [
     ".git",
     "__pycache__",
     ".venv",
+    "venv",
     "build",
     "dist",
+    "managed_components",
+    ".ruff_cache",
+    ".cache",
+    ".vscode",
+    ".claude",
 ]
 
 [tool.ruff.lint]
