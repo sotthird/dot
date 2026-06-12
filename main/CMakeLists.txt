@@ -4,6 +4,7 @@ idf_component_register(
         "app.c"
         "apps/spotify_app.c"
         "apps/cpu_app.c"
+        "apps/ci_app.c"
         "EXIO/TCA9554PWR.c"
         "LCD_Driver/ST7701S.c"
         "Touch_Driver/CST820.c"

@@ -24,6 +24,10 @@ class SerialConn:
         self.ser.write(msg.encode())
         self.ser.flush()
 
+    def send_bytes(self, data: bytes):
+        self.ser.write(data)
+        self.ser.flush()
+
     def start_command_listener(self, on_command):
         """Start a background thread that calls on_command(cmd) for each CMD: line."""
 

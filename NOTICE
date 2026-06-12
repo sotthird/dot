@@ -1,0 +1,27 @@
+This project includes third-party board support / driver code derived from
+Waveshare's ESP32-S3-Touch-LCD-2.1 demo firmware and Espressif's esp_lcd_touch
+component, both licensed under the Apache License, Version 2.0 (see
+LICENSE-APACHE).
+
+  Copyright Waveshare
+  Copyright 2022-2023 Espressif Systems (Shanghai) CO LTD
+
+The following directories contain code derived from those sources and have
+been modified for use in this project (restructured, integrated with the app
+framework in main/app.c and main/apps/, and adapted for this project's LVGL
+UI):
+
+  main/BAT_Driver/
+  main/Buzzer/
+  main/EXIO/
+  main/I2C_Driver/
+  main/LCD_Driver/
+  main/LVGL_Driver/
+  main/PCF85063/
+  main/QMI8658/
+  main/SD_Card/
+  main/Touch_Driver/
+  main/Wireless/
+
+All other code in this repository (main/app.c, main/apps/, main/LVGL_UI/,
+main/main.c, host/, and project configuration) is original to this project.

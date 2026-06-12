@@ -18,6 +18,10 @@ class App:
         """Return a formatted serial message to send, or None to skip this cycle."""
         return None
 
+    def poll_binary(self, client) -> list:
+        """Return a list of raw binary messages (e.g. images) to send, or [] to skip."""
+        return []
+
     def on_command(self, cmd: str, client) -> None:
         """Handle a command string received from the ESP32 (e.g. button press)."""
         pass
