@@ -4,24 +4,45 @@
 import sys
 import time
 
-from apps.spotify_app import SpotifyApp
+# from apps.cpu_app import CpuApp     # uncomment to enable
+from apps.ci_app import CiApp  # uncomment to enable (needs `gh` CLI)
 from serial_conn import SerialConn
 
-# from apps.cpu_app import CpuApp     # uncomment to enable
-
-PORT = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM0"
-BAUD = int(sys.argv[2]) if len(sys.argv) > 2 else 115200
 POLL_INTERVAL = 1  # seconds between poll cycles
 
 
+def parse_args(argv):
+    """Pull out --ci-repo PATH (CI app target); the rest are positional PORT BAUD."""
+    ci_repo = None
+    positional = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ("--ci-repo", "--repo"):
+            ci_repo = argv[i + 1] if i + 1 < len(argv) else None
+            i += 2
+            continue
+        if arg.startswith("--ci-repo="):
+            ci_repo = arg.split("=", 1)[1]
+        else:
+            positional.append(arg)
+        i += 1
+    port = positional[0] if len(positional) > 0 else "/dev/ttyACM0"
+    baud = int(positional[1]) if len(positional) > 1 else 115200
+    return port, baud, ci_repo
+
+
 def main():
-    conn = SerialConn(PORT, BAUD)
+    port, baud, ci_repo = parse_args(sys.argv[1:])
+
+    conn = SerialConn(port, baud)
     conn.connect()
 
     # ---- Register apps here ----------------------------------------
     apps = [
-        SpotifyApp(),
+        # SpotifyApp(),
         # CpuApp(),
+        CiApp(repo_dir=ci_repo),  # --ci-repo PATH overrides; else CI_REPO_DIR env / cwd
     ]
     # ----------------------------------------------------------------
 

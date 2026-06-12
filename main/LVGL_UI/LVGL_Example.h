@@ -12,3 +12,10 @@ void spotify_set_cmd_callback(spotify_cmd_cb_t cb);
 void update_spotify(const char* track, const char* artist, bool is_playing, int32_t progress_ms,
                     int32_t duration_ms);
 void update_spotify_art(const uint8_t* data, int w, int h, uint32_t color);
+
+typedef void (*ci_cmd_cb_t)(const char* cmd);
+
+void ci_orb(void);
+void ci_set_cmd_callback(ci_cmd_cb_t cb);
+void update_ci_orb(int state, const char* repo, const char* title, const char* wf_branch,
+                   const char* runinfo);

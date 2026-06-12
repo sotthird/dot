@@ -14,6 +14,7 @@
 
 /* App registry */
 #include "app.h"
+#include "apps/ci_app.h"
 #include "apps/cpu_app.h"
 #include "apps/spotify_app.h"
 
@@ -100,8 +101,13 @@ static void lvgl_task(void* arg) {
         }
         if (sleep_ms > LVGL_MAX_SLEEP_MS)
             sleep_ms = LVGL_MAX_SLEEP_MS;
-        if (sleep_ms > 0)
-            vTaskDelay(pdMS_TO_TICKS(sleep_ms));
+        /* Always block at least one tick. When an animation is active
+         * lv_timer_handler() can return 0, and a 0-length delay would let this
+         * task busy-loop and starve the core-1 IDLE task, tripping the WDT. */
+        TickType_t delay = pdMS_TO_TICKS(sleep_ms);
+        if (delay == 0)
+            delay = 1;
+        vTaskDelay(delay);
     }
 }
 
@@ -133,7 +139,12 @@ void app_main(void) {
 
     app_registry_init();
 
-    app_register(&spotify_app);
+    // app_register(&spotify_app);
+    app_register(&ci_app);
+
+    /* Only one screen is active at a time (each create_ui does its own
+     * lv_screen_load), so register exactly one app. To use the CI status orb,
+     * swap the line above for: app_register(&ci_app); */
 
     xSemaphoreTake(lvgl_mux, portMAX_DELAY);
     app_start_all();
