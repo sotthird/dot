@@ -7,6 +7,7 @@ dependencies = [
     "charset-normalizer==3.4.7",
     "dotenv==0.9.9",
     "idna==3.18",
+    "pillow==12.0.0",
     "pip==25.1.1",
     "psutil==7.2.2",
     "pyserial==3.5",

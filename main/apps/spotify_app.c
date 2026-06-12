@@ -24,6 +24,11 @@ typedef struct {
 
 static spotify_buf_t buf = {0};
 
+static bool pending_image = false;
+static int pending_image_w = 0;
+static int pending_image_h = 0;
+static uint32_t pending_image_color = 0;
+
 static void send_cmd(const char* cmd) {
     static uint32_t last_ms = 0;
     uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -63,18 +68,35 @@ static void parse(const char* line) {
     app_unlock();
 }
 
+static void image(const uint8_t* data, int w, int h, uint32_t color) {
+    (void)data;
+    app_lock();
+    pending_image = true;
+    pending_image_w = w;
+    pending_image_h = h;
+    pending_image_color = color;
+    app_unlock();
+}
+
 static void update(void) {
     app_lock();
-    if (!buf.pending) {
-        app_unlock();
-        return;
-    }
+    bool has_text = buf.pending;
     spotify_buf_t local = buf;
     buf.pending = false;
+
+    bool has_image = pending_image;
+    int img_w = pending_image_w;
+    int img_h = pending_image_h;
+    uint32_t img_color = pending_image_color;
+    pending_image = false;
     app_unlock();
 
-    update_spotify(local.track, local.artist, local.is_playing, local.progress_ms,
-                   local.duration_ms);
+    if (has_text)
+        update_spotify(local.track, local.artist, local.is_playing, local.progress_ms,
+                       local.duration_ms);
+
+    if (has_image)
+        update_spotify_art(app_get_image_buffer(0), img_w, img_h, img_color);
 }
 
 const app_t spotify_app = {
@@ -83,4 +105,5 @@ const app_t spotify_app = {
     .create_ui = create_ui,
     .parse = parse,
     .update = update,
+    .image = image,
 };

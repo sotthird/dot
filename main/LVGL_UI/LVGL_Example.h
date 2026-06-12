@@ -11,3 +11,4 @@ void spotify(void);
 void spotify_set_cmd_callback(spotify_cmd_cb_t cb);
 void update_spotify(const char* track, const char* artist, bool is_playing, int32_t progress_ms,
                     int32_t duration_ms);
+void update_spotify_art(const uint8_t* data, int w, int h, uint32_t color);

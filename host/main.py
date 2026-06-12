@@ -42,6 +42,8 @@ def main():
                 msg = app.poll(client)
                 if msg:
                     conn.send(msg)
+                for blob in app.poll_binary(client):
+                    conn.send_bytes(blob)
 
             remaining = POLL_INTERVAL - (time.monotonic() - start)
             if remaining > 0:

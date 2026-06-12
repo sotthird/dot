@@ -55,7 +55,15 @@ static lv_obj_t* spotify_artist_label;
 static lv_obj_t* spotify_progress_bar;
 static lv_obj_t* spotify_time_label;
 static lv_obj_t* btn_play_pause_label;
+static lv_obj_t* spotify_art_note;
+static lv_obj_t* spotify_art_img;
+static lv_obj_t* spotify_art_container;
+static lv_obj_t* spotify_header;
+static lv_obj_t* spotify_ctrl_btns[3];
+static lv_image_dsc_t spotify_art_dsc;
 static spotify_cmd_cb_t s_cmd_cb = NULL;
+
+#define SPOTIFY_ART_SIZE 180
 
 void spotify_set_cmd_callback(spotify_cmd_cb_t cb) {
     s_cmd_cb = cb;
@@ -103,23 +111,35 @@ void spotify(void) {
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x121212), 0);
     lv_screen_load(scr);
 
-    lv_obj_t* header = lv_label_create(scr);
-    lv_label_set_text(header, "Now Playing");
-    lv_obj_set_style_text_color(header, lv_color_hex(0x1DB954), 0);
-    lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 24);
+    spotify_header = lv_label_create(scr);
+    lv_label_set_text(spotify_header, "Now Playing");
+    lv_obj_set_style_text_color(spotify_header, lv_color_hex(0x1DB954), 0);
+    lv_obj_align(spotify_header, LV_ALIGN_TOP_MID, 0, 24);
 
-    lv_obj_t* art = lv_obj_create(scr);
-    lv_obj_set_size(art, 170, 170);
+    spotify_art_container = lv_obj_create(scr);
+    lv_obj_t* art = spotify_art_container;
+    lv_obj_set_size(art, SPOTIFY_ART_SIZE, SPOTIFY_ART_SIZE);
     lv_obj_set_style_bg_color(art, lv_color_hex(0x282828), 0);
     lv_obj_set_style_border_width(art, 0, 0);
     lv_obj_set_style_radius(art, 12, 0);
+    lv_obj_set_scrollbar_mode(art, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(art, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align(art, LV_ALIGN_TOP_MID, 0, 55);
 
-    lv_obj_t* note = lv_label_create(art);
-    lv_label_set_text(note, LV_SYMBOL_AUDIO);
-    lv_obj_set_style_text_color(note, lv_color_hex(0x1DB954), 0);
-    lv_obj_set_style_text_font(note, &lv_font_montserrat_48, 0);
-    lv_obj_center(note);
+    spotify_art_note = lv_label_create(art);
+    lv_label_set_text(spotify_art_note, LV_SYMBOL_AUDIO);
+    lv_obj_set_style_text_color(spotify_art_note, lv_color_hex(0x1DB954), 0);
+    lv_obj_set_style_text_font(spotify_art_note, &lv_font_montserrat_48, 0);
+    lv_obj_center(spotify_art_note);
+
+    spotify_art_img = lv_image_create(art);
+    lv_obj_set_size(spotify_art_img, SPOTIFY_ART_SIZE, SPOTIFY_ART_SIZE);
+    lv_obj_set_style_radius(spotify_art_img, 12, 0);
+    lv_obj_set_style_clip_corner(spotify_art_img, true, 0);
+    lv_obj_set_scrollbar_mode(spotify_art_img, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(spotify_art_img, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_center(spotify_art_img);
+    lv_obj_add_flag(spotify_art_img, LV_OBJ_FLAG_HIDDEN);
 
     spotify_track_label = lv_label_create(scr);
     lv_label_set_text(spotify_track_label, "---");
@@ -129,14 +149,14 @@ void spotify(void) {
 #if LV_FONT_MONTSERRAT_20
     lv_obj_set_style_text_font(spotify_track_label, &lv_font_montserrat_20, 0);
 #endif
-    lv_obj_align(spotify_track_label, LV_ALIGN_TOP_MID, 0, 238);
+    lv_obj_align(spotify_track_label, LV_ALIGN_TOP_MID, 0, 252);
 
     spotify_artist_label = lv_label_create(scr);
     lv_label_set_text(spotify_artist_label, "---");
     lv_label_set_long_mode(spotify_artist_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_width(spotify_artist_label, 340);
     lv_obj_set_style_text_color(spotify_artist_label, lv_color_hex(0xB3B3B3), 0);
-    lv_obj_align(spotify_artist_label, LV_ALIGN_TOP_MID, 0, 268);
+    lv_obj_align(spotify_artist_label, LV_ALIGN_TOP_MID, 0, 274);
 
     spotify_progress_bar = lv_bar_create(scr);
     lv_obj_set_size(spotify_progress_bar, 300, 6);
@@ -146,16 +166,17 @@ void spotify(void) {
     lv_obj_set_style_bg_color(spotify_progress_bar, lv_color_hex(0x1DB954), LV_PART_INDICATOR);
     lv_obj_set_style_radius(spotify_progress_bar, 3, LV_PART_MAIN);
     lv_obj_set_style_radius(spotify_progress_bar, 3, LV_PART_INDICATOR);
-    lv_obj_align(spotify_progress_bar, LV_ALIGN_TOP_MID, 0, 300);
+    lv_obj_align(spotify_progress_bar, LV_ALIGN_TOP_MID, 0, 304);
 
     spotify_time_label = lv_label_create(scr);
     lv_label_set_text(spotify_time_label, "0:00 / 0:00");
     lv_obj_set_style_text_color(spotify_time_label, lv_color_hex(0x535353), 0);
-    lv_obj_align(spotify_time_label, LV_ALIGN_TOP_MID, 0, 315);
+    lv_obj_align(spotify_time_label, LV_ALIGN_TOP_MID, 0, 319);
 
-    make_ctrl_btn(scr, LV_SYMBOL_PREV, btn_prev_cb, -95);
+    spotify_ctrl_btns[0] = lv_obj_get_parent(make_ctrl_btn(scr, LV_SYMBOL_PREV, btn_prev_cb, -95));
     btn_play_pause_label = make_ctrl_btn(scr, LV_SYMBOL_PLAY, btn_play_pause_cb, 0);
-    make_ctrl_btn(scr, LV_SYMBOL_NEXT, btn_next_cb, 95);
+    spotify_ctrl_btns[1] = lv_obj_get_parent(btn_play_pause_label);
+    spotify_ctrl_btns[2] = lv_obj_get_parent(make_ctrl_btn(scr, LV_SYMBOL_NEXT, btn_next_cb, 95));
 }
 
 static void ms_to_str(int32_t ms, char* buf, size_t len) {
@@ -185,5 +206,44 @@ void update_spotify(const char* track, const char* artist, bool is_playing, int3
         ms_to_str(duration_ms, tot, sizeof(tot));
         snprintf(buf, sizeof(buf), "%s / %s", cur, tot);
         lv_label_set_text(spotify_time_label, buf);
+    }
+}
+
+void update_spotify_art(const uint8_t* data, int w, int h, uint32_t color) {
+    if (!spotify_art_img || !data || w <= 0 || h <= 0)
+        return;
+
+    spotify_art_dsc.header.magic = LV_IMAGE_HEADER_MAGIC;
+    spotify_art_dsc.header.cf = LV_COLOR_FORMAT_RGB565;
+    spotify_art_dsc.header.w = (uint32_t)w;
+    spotify_art_dsc.header.h = (uint32_t)h;
+    spotify_art_dsc.header.stride = (uint32_t)(w * 2);
+    spotify_art_dsc.data_size = (uint32_t)(w * h * 2);
+    spotify_art_dsc.data = data;
+
+    lv_image_set_src(spotify_art_img, &spotify_art_dsc);
+
+    if (spotify_art_note)
+        lv_obj_add_flag(spotify_art_note, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(spotify_art_img, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_invalidate(spotify_art_img);
+
+    lv_color_t accent = lv_color_hex(color);
+
+    if (spotify_header)
+        lv_obj_set_style_text_color(spotify_header, accent, 0);
+
+    if (spotify_progress_bar)
+        lv_obj_set_style_bg_color(spotify_progress_bar, accent, LV_PART_INDICATOR);
+
+    for (int i = 0; i < 3; i++)
+        if (spotify_ctrl_btns[i])
+            lv_obj_set_style_bg_color(spotify_ctrl_btns[i], accent, LV_STATE_PRESSED);
+
+    if (spotify_art_container) {
+        lv_obj_set_style_shadow_color(spotify_art_container, accent, 0);
+        lv_obj_set_style_shadow_width(spotify_art_container, 30, 0);
+        lv_obj_set_style_shadow_spread(spotify_art_container, 2, 0);
+        lv_obj_set_style_shadow_opa(spotify_art_container, LV_OPA_60, 0);
     }
 }
