@@ -63,6 +63,72 @@ def _fmt_delta(iso: str, running: bool) -> str:
     return f"{text} ago"
 
 
+def _job_progress(repo_dir, run_id) -> str:
+    """While a run is in progress, summarize its jobs as 'done/total currentjob'."""
+    if not run_id:
+        return ""
+    try:
+        out = subprocess.run(
+            ["gh", "run", "view", str(run_id), "--json", "jobs"],
+            cwd=repo_dir,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if out.returncode != 0:
+            return ""
+        jobs = json.loads(out.stdout or "{}").get("jobs", [])
+        if not jobs:
+            return ""
+
+        total = len(jobs)
+        done = sum(1 for j in jobs if (j.get("status") or "").lower() == "completed")
+        current = next(
+            (j.get("name", "") for j in jobs if (j.get("status") or "").lower() == "in_progress"),
+            "",
+        )
+
+        progress = f"{done}/{total}"
+        if current:
+            name = _ascii(current)
+            room = 28 - len(progress)  # leave space for a leading "#123 " prefix
+            if room > 1:
+                progress += f" {name[: room - 1]}"
+        return progress
+    except Exception:
+        return ""
+
+
+def _check_runs_progress(repo_dir, repo, sha) -> str:
+    """Fallback: tally check-runs for the commit as 'done/total checks'."""
+    if not repo or not sha:
+        return ""
+    try:
+        out = subprocess.run(
+            [
+                "gh",
+                "api",
+                f"repos/{repo}/commits/{sha}/check-runs",
+                "--jq",
+                "[.check_runs[].status]",
+            ],
+            cwd=repo_dir,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if out.returncode != 0:
+            return ""
+        statuses = json.loads(out.stdout or "[]")
+        if not statuses:
+            return ""
+        total = len(statuses)
+        done = sum(1 for s in statuses if s == "completed")
+        return f"{done}/{total} checks"
+    except Exception:
+        return ""
+
+
 def get_status(repo_dir=None) -> "tuple[str, str, str, str, str] | None":
     """Return (state, repo, title, wf_branch, runinfo) for the latest run, or None on error.
 
@@ -78,7 +144,8 @@ def get_status(repo_dir=None) -> "tuple[str, str, str, str, str] | None":
                 "--limit",
                 "1",
                 "--json",
-                "status,conclusion,workflowName,headBranch,number,displayTitle,createdAt,updatedAt",
+                "databaseId,headSha,status,conclusion,workflowName,headBranch,number,"
+                "displayTitle,createdAt,updatedAt",
             ],
             cwd=repo_dir,
             capture_output=True,
@@ -109,15 +176,28 @@ def get_status(repo_dir=None) -> "tuple[str, str, str, str, str] | None":
             " /"
         )
 
-        when = run.get("createdAt", "") if state == "running" else run.get("updatedAt", "")
-        delta = _fmt_delta(when, running=(state == "running"))
         number = run.get("number")
-        if number and delta:
-            runinfo = f"#{number}  {delta}"
-        elif number:
-            runinfo = f"#{number}"
+        if state == "running":
+            progress = _job_progress(repo_dir, run.get("databaseId")) or _check_runs_progress(
+                repo_dir, repo, run.get("headSha")
+            )
+            if progress:
+                runinfo = f"#{number}  {progress}" if number else progress
+            else:
+                delta = _fmt_delta(run.get("createdAt", ""), running=True)
+                runinfo = (
+                    f"#{number}  {delta}"
+                    if number and delta
+                    else (f"#{number}" if number else delta)
+                )
         else:
-            runinfo = delta
+            delta = _fmt_delta(run.get("updatedAt", ""), running=False)
+            if number and delta:
+                runinfo = f"#{number}  {delta}"
+            elif number:
+                runinfo = f"#{number}"
+            else:
+                runinfo = delta
 
         return state, repo, title, wf_branch, runinfo
     except Exception as e:

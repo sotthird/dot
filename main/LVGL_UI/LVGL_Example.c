@@ -304,8 +304,13 @@ void ci_set_cmd_callback(ci_cmd_cb_t cb) {
     ci_cmd_cb = cb;
 }
 
-static void ci_orb_clicked_cb(lv_event_t* e) {
+/* Fire on press-down (not click/release) so the refresh feedback feels instant
+ * instead of waiting for the finger to lift. Ignore presses while a refresh is
+ * already in flight, so holding the orb down doesn't repeatedly retrigger it. */
+static void ci_orb_pressed_cb(lv_event_t* e) {
     (void)e;
+    if (ci_refresh_timer)
+        return;
     ci_show_refreshing();
     if (ci_cmd_cb)
         ci_cmd_cb("ci_refresh");
@@ -437,7 +442,7 @@ void ci_orb(void) {
     lv_obj_remove_flag(ci_center, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align(ci_center, LV_ALIGN_CENTER, 0, CI_ORB_Y);
     lv_obj_add_flag(ci_center, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(ci_center, ci_orb_clicked_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(ci_center, ci_orb_pressed_cb, LV_EVENT_PRESSED, NULL);
 
     /* Stack icon / word / sub-line vertically, centered as a group. */
     lv_obj_set_flex_flow(ci_center, LV_FLEX_FLOW_COLUMN);

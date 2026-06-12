@@ -17,13 +17,29 @@ PORT = "/dev/ttyACM0"
 BAUD = 115200
 
 # (state, repo, title, wf_branch, runinfo)
+# The "running" entries simulate job-progress updates (done/total + current job
+# name) as ci_monitor.get_status() now reports them mid-run.
 STATES = [
     (
         "running",
         "sotthird/dot",
         "add ci orb redesign with gradient ring",
         "Build & Test / main",
-        "#129  40s",
+        "#129  0/4 build",
+    ),
+    (
+        "running",
+        "sotthird/dot",
+        "add ci orb redesign with gradient ring",
+        "Build & Test / main",
+        "#129  1/4 test",
+    ),
+    (
+        "running",
+        "sotthird/dot",
+        "add ci orb redesign with gradient ring",
+        "Build & Test / main",
+        "#129  3/4 lint",
     ),
     ("success", "sotthird/dot", "fix: cache key for tests", "Build & Test / main", "#128  2m ago"),
     ("failure", "sotthird/dot", "broken pipeline step", "Build & Test / main", "#130  just now"),
