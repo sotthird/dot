@@ -3,7 +3,8 @@
 
 # ESP32-S3 Touch LCD 2.1 — Now Playing Display
 
-A 480×480 circular touchscreen (ST7701S RGB panel + CST820 capacitive touch,
+Built for the [Waveshare ESP32-S3-Touch-LCD-2.1](https://www.waveshare.com/esp32-s3-touch-lcd-2.1.htm) —
+a 480×480 circular touchscreen (ST7701S RGB panel + CST820 capacitive touch,
 driven by [LVGL v9](https://lvgl.io/)) turned into a desktop companion display.
 A small Python host app talks to the board over USB serial and shows what's
 currently playing on Spotify — track, artist, album-style "now playing" screen,
@@ -65,9 +66,10 @@ and I2C/SPI addresses, and any tunable settings.
 
 ## Hardware required
 
-- The ESP32-S3 board this project targets — 480×480 circular RGB display
-  (ST7701S) with a CST820 capacitive touch panel and onboard sensors (IMU, RTC,
-  battery ADC, IO expander, microSD), and **Octal PSRAM**
+- [Waveshare ESP32-S3-Touch-LCD-2.1](https://www.waveshare.com/esp32-s3-touch-lcd-2.1.htm) — 480×480
+  circular RGB display (ST7701S) with a CST820 capacitive touch panel and
+  onboard sensors (IMU, RTC, battery ADC, IO expander, microSD), and
+  **Octal PSRAM**
 - A USB cable for power, programming, and the serial link to the host
 
 ## Prerequisites
