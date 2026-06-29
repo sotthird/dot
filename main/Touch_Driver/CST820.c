@@ -61,6 +61,14 @@ esp_err_t esp_lcd_touch_new_i2c_cst820(const esp_lcd_panel_io_handle_t io,
     ESP_GOTO_ON_ERROR(reset(cst820), err, TAG, "Reset failed");
 
     ESP_GOTO_ON_ERROR(read_id(cst820), err, TAG, "Read version failed");
+
+    /* Disable auto-sleep (reg 0xFE on the Hynitron CST8xx family). When the
+     * controller naps it stops ACKing reads — with our unconditional polling
+     * that produced continuous "i2c transaction failed" errors and delayed the
+     * next touch. Best-effort: parts without this register just ignore it. */
+    uint8_t dis_auto_sleep = 0x01;
+    esp_lcd_panel_io_tx_param(cst820->io, 0xFE, &dis_auto_sleep, 1);
+
     *tp = cst820;
 
     return ESP_OK;
@@ -80,10 +88,11 @@ static esp_err_t read_data(esp_lcd_touch_handle_t tp) {
 
     assert(tp != NULL);
 
-    if (tp->config.int_gpio_num != GPIO_NUM_NC && gpio_get_level(tp->config.int_gpio_num) != 0) {
-        return ESP_OK;
-    }
-
+    /* Poll the touch registers unconditionally. This driver is purely polled
+     * (no INT callback is registered), and on this CST820 the INT line only
+     * pulses low per report rather than staying low for the whole contact —
+     * gating the I2C read on INT level dropped most samples, so quick taps were
+     * missed and a long press was needed to land a poll inside an INT pulse. */
     err = i2c_read_bytes(tp, TOUCH_NUM, buf, 1);
     if (err != ESP_OK) {
         return ESP_OK;
