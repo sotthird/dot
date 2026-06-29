@@ -1,38 +1,54 @@
 idf_component_register(
     SRCS
         "main.c"
-        "app.c"
-        "apps/spotify_app.c"
-        "apps/cpu_app.c"
         "apps/ci_app.c"
+        "Settings/settings.c"
+        "Net/wifi_sta.c"
+        "Net/github_ci.c"
+        "Net/web_server.c"
         "EXIO/TCA9554PWR.c"
+        "Buzzer/Buzzer.c"
         "LCD_Driver/ST7701S.c"
         "Touch_Driver/CST820.c"
         "Touch_Driver/esp_lcd_touch/esp_lcd_touch.c"
         "LVGL_Driver/LVGL_Driver.c"
         "I2C_Driver/I2C_Driver.c"
-        "PCF85063/PCF85063.c"
-        "QMI8658/QMI8658.c"
-        "SD_Card/SD_MMC.c"
-        "LVGL_UI/LVGL_Example.c"
-        "Wireless/Wireless.c"
-        "Buzzer/Buzzer.c"
-        "BAT_Driver/BAT_Driver.c"
+        "LVGL_UI/LVGL_UI.c"
+
+    PRIV_REQUIRES
+        esp_driver_gpio
+        esp_driver_i2c
+        esp_driver_ledc
+        esp_driver_spi
+        esp_lcd
+        esp_timer
+        esp_http_client
+        esp_http_server
+        esp-tls
+        espressif__mdns
+        nvs_flash
+        esp_wifi
+        esp_event
+        esp_netif
+        esp_common
+        esp_system
+        spi_flash
+        log
+        mbedtls
+        heap
+        espressif__cjson
 
     INCLUDE_DIRS
         "."
         "./apps"
+        "./Settings"
+        "./Net"
         "./EXIO"
         "./LCD_Driver"
         "./Touch_Driver"
         "./Touch_Driver/esp_lcd_touch"
         "./LVGL_Driver"
         "./I2C_Driver"
-        "./PCF85063"
-        "./QMI8658"
-        "./SD_Card"
-        "./LVGL_UI"
-        "./Wireless"
         "./Buzzer"
-        "./BAT_Driver"
+        "./LVGL_UI"
 )

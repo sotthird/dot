@@ -1,5 +1,7 @@
 #include "LVGL_Driver.h"
 
+#define TOUCH_H_OFFSET (0)
+
 static const char* LVGL_TAG = "LVGL";
 
 #define DRAW_BUF_SIZE (EXAMPLE_LCD_H_RES * 20 * 2)
@@ -11,21 +13,38 @@ static void flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* px_map)
 }
 
 static void touchpad_read(lv_indev_t* indev, lv_indev_data_t* data) {
+    static uint16_t last_x = 0, last_y = 0;
+    static uint8_t release_count = 0;
+    static bool is_pressed = false;
+
     uint16_t x[1] = {0};
     uint16_t y[1] = {0};
     uint8_t cnt = 0;
 
     esp_lcd_touch_read_data(lv_indev_get_user_data(indev));
-    bool pressed =
+    bool touched =
         esp_lcd_touch_get_coordinates(lv_indev_get_user_data(indev), x, y, NULL, &cnt, 1);
 
-    if (pressed && cnt > 0) {
-        data->point.x = x[0];
-        data->point.y = y[0];
-        data->state = LV_INDEV_STATE_PRESSED;
+    if (touched && cnt > 0) {
+        last_x = x[0];
+        last_y = y[0];
+        release_count = 0;
+        is_pressed = true;
     } else {
-        data->state = LV_INDEV_STATE_RELEASED;
+        /* The CST820 holds INT low for the whole duration of a touch, so reads
+         * during contact always see the press; an empty read means the finger
+         * has genuinely lifted. Require just 2 consecutive empty reads to filter
+         * a stray I2C glitch — more than that only adds release latency, which
+         * shows up as delayed taps since buttons fire CLICKED on release. */
+        if (is_pressed && ++release_count >= 2) {
+            is_pressed = false;
+            release_count = 0;
+        }
     }
+
+    data->point.x = (int32_t)last_x + TOUCH_H_OFFSET;
+    data->point.y = last_y;
+    data->state = is_pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
 }
 
 static void lvgl_tick_cb(void* arg) {
@@ -62,7 +81,8 @@ void LVGL_Init(void) {
     lv_indev_set_display(indev, disp);
     lv_indev_set_read_cb(indev, touchpad_read);
     lv_indev_set_user_data(indev, tp);
-    lv_timer_set_period(lv_indev_get_read_timer(indev), 2);
+    lv_timer_set_period(lv_indev_get_read_timer(indev), 1);
+    lv_indev_set_scroll_limit(indev, 20);  /* raise from default 10 px to reduce mis-classified taps */
 
     ESP_LOGI(LVGL_TAG, "Install LVGL tick timer");
     const esp_timer_create_args_t tick_timer_args = {.callback = lvgl_tick_cb, .name = "lvgl_tick"};

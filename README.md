@@ -67,10 +67,13 @@ host/                   Python host application
 ├── main.py             Entry point — registers apps, runs the poll loop
 ├── app.py              Base App class — the framework core (mirrors C-side app_t)
 ├── serial_conn.py      USB serial connection + command listener thread
-├── apps/               Example app modules (spotify_app, cpu_app, ci_app)
-└── *_client.py /       Per-example helpers (spotify_client, cpu_monitor, ci_monitor)
+├── apps/               Example app modules (spotify_app, cpu_app)
+└── *_client.py /       Per-example helpers (spotify_client, cpu_monitor)
     *_monitor.py
 ```
+
+> The CI status orb has no host side — it runs entirely on the device (WiFi +
+> GitHub API). See [CI status orb](#ci-status-orb).
 
 The `apps/` folder on each side is the modular **examples** collection — every
 file in it is one self-contained screen you can enable, disable, copy, or delete
@@ -149,21 +152,41 @@ starting point for your own app.
 
 ### CI status orb
 
-`main/apps/ci_app.c` · `host/apps/ci_app.py` · prefix `CI:`
+`main/apps/ci_app.c` · prefix `CI:` · **runs entirely on-device — no host needed**
 
 Turns the whole circular display into a single glanceable light for your latest
 GitHub Actions run: **green** when passing, **amber and pulsing** while a run is
-in progress, **red** on failure. Tap the orb to open that run in your browser.
+in progress, **red** on failure. Tap the orb to refresh immediately.
 
-Zero-config — the host uses the [`gh` CLI](https://cli.github.com/), which
-auto-detects the repo and is already authenticated, so there are no tokens or
-URLs to set up. To use it:
+The firmware talks to the GitHub Actions REST API directly over WiFi, so there
+is no Python host in the loop. Everything is configured **on the device**:
 
-1. Register `ci_app` in `main/main.c` (see above) and reflash.
-2. On the host, install and sign in to the GitHub CLI: `gh auth login`.
-3. Enable `CiApp` in `host/main.py` (uncomment it in the `apps` list).
-4. Run the host **from inside the repo whose CI you want to watch**, or point it
-   at one: `CI_REPO_DIR=/path/to/repo python main.py`.
+1. Register `ci_app` in `main/main.c` (the default) and flash.
+2. On first boot the **settings screen** appears (or tap the **gear** button on
+   the orb at any time). Enter:
+   - **WiFi SSID** and **password**
+   - **GitHub token** — a [personal access token](https://github.com/settings/tokens)
+     with read access to Actions (fine-grained: *Actions → Read-only*; classic:
+     `repo` scope for private repos, none needed for public)
+   - **Repo** as `owner/name`
+   - **Branch** to watch (leave blank to track the latest run on any branch)
+3. Tap **Save**. The device connects, fetches status, and starts polling. The
+   watched branch is shown on the main screen.
+
+**Credential storage.** Settings are saved in encrypted NVS
+(`CONFIG_NVS_ENCRYPTION`), with the keys held in a dedicated `nvs_keys`
+partition. For the token to be genuinely protected at rest, also enable
+**flash encryption** on the board — a one-time, **irreversible** eFuse burn:
+
+```bash
+idf.py menuconfig   # Security features → Enable flash encryption on boot
+idf.py flash monitor
+```
+
+Do this only when you understand the consequences (read
+[Espressif's flash encryption guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/security/flash-encryption.html)
+first). Without it, NVS data is still encrypted but the keys sit in the
+`nvs_keys` partition in plaintext.
 
 ## Hardware required
 
@@ -209,7 +232,7 @@ console output, so use the device node ESP-IDF prints when flashing (commonly
    # plus whatever the enabled example needs, e.g.:
    pip install spotipy python-dotenv pillow   # Spotify
    pip install psutil                          # CPU gauge
-   # CI orb needs the `gh` CLI, not a pip package
+   # (The CI orb needs no host — it's configured on the device.)
    ```
 
 2. **Enable the example(s) you want** in `host/main.py` (uncomment them in the
