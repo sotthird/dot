@@ -13,40 +13,19 @@
 
 #define TAG "main"
 
-void Driver_Loop(void* parameter) {
-    while (1) {
-        // QMI8658_Loop();
-        // RTC_Loop();
-        // BAT_Get_Volts();
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-    vTaskDelete(NULL);
-}
-
-void Driver_Init(void) {
-    // Flash_Searching();
-    // BAT_Init();
-    I2C_Init();
-    // PCF85063_Init();
-    // QMI8658_Init();
-    EXIO_Init();  // Example Initialize EXIO
-    xTaskCreatePinnedToCore(Driver_Loop, "Other Driver task", 4096, NULL, 3, NULL, 0);
-}
 
 static void ci_task(void* arg) {
     (void)arg;
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(5));
+        vTaskDelay(pdMS_TO_TICKS(10));
         ci_app_update();
         lv_timer_handler();
     }
 }
 
 void app_main(void) {
-    // I2C_Init();
-    // EXIO_Init();
-    // Wireless_Init();
-    Driver_Init();
+    I2C_Init();
+    EXIO_Init();
     LCD_Init();
     Touch_Init();
     LVGL_Init();

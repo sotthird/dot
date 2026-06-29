@@ -7,6 +7,8 @@ void ci_app_update(void);
 /* Called by LVGL_UI event handlers directly (no callback indirection). */
 void ci_app_request_refresh(void);
 void ci_app_open_settings(void);
-void ci_app_connect_wifi(const char* ssid, const char* pass);
 void ci_app_set_branch(const char* branch);
-void ci_app_request_scan(void);
+
+/* Bring up the SoftAP provisioning hotspot + config web server so WiFi/repo
+ * settings can be entered from a phone browser. */
+void ci_app_start_provisioning(void);

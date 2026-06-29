@@ -1,7 +1,6 @@
 #include "LVGL_UI.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "ST7701S.h"
@@ -9,13 +8,13 @@
 
 /* ---- CI / build status orb ------------------------------------------------ */
 
-#define CI_CENTER_SIZE 210
-#define CI_RING_SIZE 250
-#define CI_RING_WIDTH 16
-#define CI_ORB_Y (10)
+#define CI_CENTER_SIZE 160
+#define CI_RING_SIZE 200
+#define CI_RING_WIDTH 8
+#define CI_ORB_Y (6)
 
 /* Horizontal offset to compensate for RGB panel timing shift. Negative = left. */
-#define DISP_H_OFFSET (-85)
+#define DISP_H_OFFSET (0)
 
 /* Per-state palette: gradient base -> darker (center fill), ring rim, rim highlight (pulse). */
 typedef struct {
@@ -416,274 +415,109 @@ void update_ci_orb(int state, const char* repo, const char* title, const char* w
     strncpy(ci_last_info, runinfo ? runinfo : "", sizeof(ci_last_info) - 1);
 }
 
-/* ===== Settings form ====================================================== */
+/* ===== WiFi setup (SoftAP provisioning) =================================== */
 
-#define SCAN_OPTS_MAX 600 /* SCAN_MAX * 33 + separators + "(enter manually)\0" */
+/* Must match the SoftAP brought up by wifi_sta_start_ap(). */
+#define AP_SSID_TXT "CI-Orb-Setup"
+#define AP_PASS_TXT "ciorbsetup"
+#define AP_URL_TXT "http://192.168.4.1"
+/* Phone-camera WiFi-join payload: scanning it offers to join the hotspot. */
+#define AP_WIFI_QR "WIFI:T:WPA;S:" AP_SSID_TXT ";P:" AP_PASS_TXT ";;"
 
-static lv_obj_t* set_kb;
-static lv_obj_t* set_ssid_dd;
-static lv_obj_t* set_ssid_ta;
-static lv_obj_t* set_btn_row;
-static lv_obj_t* set_form;
-static lv_obj_t* set_title_obj;
-static lv_obj_t* set_float_ta;
-static lv_obj_t* set_float_lbl;
-static lv_obj_t* set_active_ta;
-static char set_ssid_current[33]; /* saved SSID for pre-selection after scan */
-static lv_obj_t* set_pass_ta;
+static lv_obj_t* set_qr;
+static lv_obj_t* set_qr_cap;
+static lv_obj_t* set_next_lbl;
+static int set_qr_stage; /* 0 = join hotspot, 1 = open config URL */
 
-static void set_float_close(void) {
-    if (set_active_ta && set_float_ta)
-        lv_textarea_set_text(set_active_ta, lv_textarea_get_text(set_float_ta));
-    set_active_ta = NULL;
-    if (set_kb) {
-        lv_keyboard_set_textarea(set_kb, NULL);
-        lv_obj_add_flag(set_kb, LV_OBJ_FLAG_HIDDEN);
+/* Render either the WiFi-join QR (step 1) or the config-URL QR (step 2). */
+static void set_qr_show(int stage) {
+    set_qr_stage = stage;
+    if (stage == 0) {
+        lv_qrcode_set_data(set_qr, AP_WIFI_QR);
+        lv_label_set_text(set_qr_cap, "1. Scan to join " AP_SSID_TXT);
+        lv_label_set_text(set_next_lbl, "URL " LV_SYMBOL_RIGHT);
+    } else {
+        lv_qrcode_set_data(set_qr, AP_URL_TXT);
+        lv_label_set_text(set_qr_cap, "2. Scan to open " AP_URL_TXT);
+        lv_label_set_text(set_next_lbl, LV_SYMBOL_LEFT " WiFi");
     }
-    if (set_float_ta)
-        lv_obj_add_flag(set_float_ta, LV_OBJ_FLAG_HIDDEN);
-    if (set_float_lbl)
-        lv_obj_add_flag(set_float_lbl, LV_OBJ_FLAG_HIDDEN);
-    if (set_form)
-        lv_obj_remove_flag(set_form, LV_OBJ_FLAG_HIDDEN);
-    if (set_btn_row)
-        lv_obj_remove_flag(set_btn_row, LV_OBJ_FLAG_HIDDEN);
-    if (set_title_obj)
-        lv_obj_remove_flag(set_title_obj, LV_OBJ_FLAG_HIDDEN);
-}
-
-static void set_float_ta_cb(lv_event_t* e) {
-    lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL || code == LV_EVENT_DEFOCUSED)
-        set_float_close();
-}
-
-static void set_ta_event_cb(lv_event_t* e) {
-    if (lv_event_get_code(e) != LV_EVENT_FOCUSED)
-        return;
-    lv_obj_t* ta = lv_event_get_target(e);
-    set_active_ta = ta;
-
-    const char* field_name = "Enter text";
-    bool is_pw = false;
-    if (ta == set_ssid_ta) {
-        field_name = "WiFi Network";
-    }
-    if (ta == set_pass_ta) {
-        field_name = "WiFi Password";
-        is_pw = true;
-    }
-
-    lv_label_set_text(set_float_lbl, field_name);
-    lv_textarea_set_password_mode(set_float_ta, is_pw);
-    lv_textarea_set_text(set_float_ta, lv_textarea_get_text(ta));
-
-    lv_obj_remove_flag(set_float_lbl, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(set_float_ta, LV_OBJ_FLAG_HIDDEN);
-
-    if (set_form)
-        lv_obj_add_flag(set_form, LV_OBJ_FLAG_HIDDEN);
-    if (set_btn_row)
-        lv_obj_add_flag(set_btn_row, LV_OBJ_FLAG_HIDDEN);
-    if (set_title_obj)
-        lv_obj_add_flag(set_title_obj, LV_OBJ_FLAG_HIDDEN);
-
-    lv_keyboard_set_textarea(set_kb, set_float_ta);
-    lv_buttonmatrix_set_button_ctrl_all(set_kb, LV_BUTTONMATRIX_CTRL_NO_REPEAT);
-    lv_obj_remove_flag(set_kb, LV_OBJ_FLAG_HIDDEN);
-}
-
-static lv_obj_t* set_add_field(lv_obj_t* parent, const char* label, bool password,
-                               const char* value) {
-    lv_obj_t* lbl = lv_label_create(parent);
-    lv_label_set_text(lbl, label);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(0xB3B3B3), 0);
-
-    lv_obj_t* ta = lv_textarea_create(parent);
-    lv_textarea_set_one_line(ta, true);
-    lv_textarea_set_password_mode(ta, password);
-    lv_textarea_set_text(ta, value ? value : "");
-    lv_obj_set_width(ta, lv_pct(100));
-    lv_obj_add_event_cb(ta, set_ta_event_cb, LV_EVENT_ALL, NULL);
-    return ta;
-}
-
-static void set_ssid_dd_cb(lv_event_t* e) {
-    (void)e;
-    if (!set_ssid_dd || !set_ssid_ta)
-        return;
-    char buf[33];
-    lv_dropdown_get_selected_str(set_ssid_dd, buf, sizeof(buf));
-    lv_textarea_set_text(set_ssid_ta, buf);
-}
-
-static const char* get_ssid_value(void) {
-    return set_ssid_ta ? lv_textarea_get_text(set_ssid_ta) : "";
-}
-
-void update_ssid_dropdown(const char* const* ssids, uint16_t count) {
-    if (!set_ssid_dd || count == 0)
-        return;
-
-    static char opts[SCAN_OPTS_MAX];
-    opts[0] = '\0';
-    for (uint16_t i = 0; i < count; i++) {
-        if (i > 0)
-            strncat(opts, "\n", SCAN_OPTS_MAX - strlen(opts) - 1);
-        strncat(opts, ssids[i], SCAN_OPTS_MAX - strlen(opts) - 1);
-    }
-    lv_dropdown_set_options(set_ssid_dd, opts);
-
-    /* Pre-select the saved SSID if it appears in the scan results. */
-    for (uint16_t i = 0; i < count; i++) {
-        if (strcmp(ssids[i], set_ssid_current) == 0) {
-            lv_dropdown_set_selected(set_ssid_dd, i);
-            break;
-        }
-    }
-}
-
-static void set_save_cb(lv_event_t* e) {
-    (void)e;
-    const char* ssid = get_ssid_value();
-    const char* pass = lv_textarea_get_text(set_pass_ta);
-    set_ssid_dd = NULL;
-    set_ssid_ta = NULL;
-    set_btn_row = NULL;
-    set_form = NULL;
-    set_title_obj = NULL;
-    set_float_ta = NULL;
-    set_float_lbl = NULL;
-    set_active_ta = NULL;
-    set_pass_ta = NULL;
-    ci_app_connect_wifi(ssid, pass);
-}
-
-static void set_scan_cb(lv_event_t* e) {
-    (void)e;
-    if (set_ssid_dd)
-        lv_dropdown_set_options(set_ssid_dd, "Scanning...");
-    ci_app_request_scan();
 }
 
 static void set_back_cb(lv_event_t* e) {
     (void)e;
-    set_ssid_dd = NULL;
-    set_ssid_ta = NULL;
-    set_btn_row = NULL;
-    set_form = NULL;
-    set_title_obj = NULL;
-    set_float_ta = NULL;
-    set_float_lbl = NULL;
-    set_active_ta = NULL;
+    set_ip_label = NULL;
+    set_qr = NULL;
+    set_qr_cap = NULL;
+    set_next_lbl = NULL;
     ci_show_orb();
 }
 
-void ci_settings_screen(const char* ssid, const char* pass) {
+static void set_next_cb(lv_event_t* e) {
+    (void)e;
+    set_qr_show(set_qr_stage == 0 ? 1 : 0);
+}
+
+/* No-typing settings screen: scan a QR to join the device hotspot, tap Next for
+ * a second QR to the config page. The full config form lives in web_server.c. */
+void ci_settings_screen(void) {
     if (s_settings_scr) {
         lv_obj_delete(s_settings_scr);
         s_settings_scr = NULL;
     }
-    set_ssid_dd = NULL;
-    set_ssid_ta = NULL;
-    set_btn_row = NULL;
-    set_form = NULL;
-    set_title_obj = NULL;
-    set_float_ta = NULL;
-    set_float_lbl = NULL;
-    set_active_ta = NULL;
     set_ip_label = NULL;
-    strncpy(set_ssid_current, ssid ? ssid : "", sizeof(set_ssid_current) - 1);
-    set_ssid_current[sizeof(set_ssid_current) - 1] = '\0';
+
+    /* Ensure the hotspot + web server are up so the QR codes actually work,
+     * including when reached via the gear button after WiFi is connected. */
+    ci_app_start_provisioning();
 
     lv_obj_t* scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x121212), 0);
     lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scroll_dir(scr, LV_DIR_NONE);
     lv_obj_set_style_pad_all(scr, 0, 0);
     s_settings_scr = scr;
     lv_screen_load(scr);
 
     lv_obj_t* root = make_root(scr);
 
-    set_title_obj = lv_label_create(root);
-    lv_label_set_text(set_title_obj, "Settings");
-    lv_obj_set_style_text_color(set_title_obj, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_align(set_title_obj, LV_ALIGN_TOP_MID, 0, 25);
+    lv_obj_t* title = lv_label_create(root);
+    lv_label_set_text(title, "WiFi Setup");
+    lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), 0);
+#if LV_FONT_MONTSERRAT_20
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_20, 0);
+#endif
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 40);
 
-    set_form = lv_obj_create(root);
-    lv_obj_t* form = set_form;
-    lv_obj_set_size(form, 300, 280);
-    lv_obj_align(form, LV_ALIGN_CENTER, 0, -10);
-    lv_obj_set_scrollbar_mode(form, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_remove_flag(form, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scroll_dir(form, LV_DIR_NONE);
-    lv_obj_set_style_bg_opa(form, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(form, 0, 0);
-    lv_obj_set_style_pad_all(form, 0, 0);
-    lv_obj_set_style_pad_row(form, 4, 0);
-    lv_obj_set_flex_flow(form, LV_FLEX_FLOW_COLUMN);
+    set_qr = lv_qrcode_create(root);
+    lv_qrcode_set_size(set_qr, 180);
+    lv_qrcode_set_dark_color(set_qr, lv_color_black());
+    lv_qrcode_set_light_color(set_qr, lv_color_white());
+    lv_qrcode_set_quiet_zone(set_qr, true);
+    lv_obj_align(set_qr, LV_ALIGN_CENTER, 0, -30);
 
-    /* SSID: editable text area + scan dropdown to fill it from scan results. */
-    lv_obj_t* ssid_lbl = lv_label_create(form);
-    lv_label_set_text(ssid_lbl, "WiFi SSID");
-    lv_obj_set_style_text_color(ssid_lbl, lv_color_hex(0xB3B3B3), 0);
+    set_qr_cap = lv_label_create(root);
+    lv_obj_set_style_text_color(set_qr_cap, lv_color_hex(0xCCCCCC), 0);
+    lv_obj_set_style_text_align(set_qr_cap, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(set_qr_cap, 300);
+    lv_obj_align_to(set_qr_cap, set_qr, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
 
-    set_ssid_ta = lv_textarea_create(form);
-    lv_textarea_set_one_line(set_ssid_ta, true);
-    lv_textarea_set_text(set_ssid_ta, ssid ? ssid : "");
-    lv_textarea_set_placeholder_text(set_ssid_ta, "Network name");
-    lv_obj_set_width(set_ssid_ta, lv_pct(100));
-    lv_obj_add_event_cb(set_ssid_ta, set_ta_event_cb, LV_EVENT_ALL, NULL);
-
-    lv_obj_t* ssid_row = lv_obj_create(form);
-    lv_obj_set_size(ssid_row, lv_pct(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_bg_opa(ssid_row, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(ssid_row, 0, 0);
-    lv_obj_set_style_pad_all(ssid_row, 0, 0);
-    lv_obj_set_style_pad_column(ssid_row, 4, 0);
-    lv_obj_set_scrollbar_mode(ssid_row, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_remove_flag(ssid_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scroll_dir(ssid_row, LV_DIR_NONE);
-    lv_obj_set_flex_flow(ssid_row, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(ssid_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
-
-    set_ssid_dd = lv_dropdown_create(ssid_row);
-    lv_obj_set_flex_grow(set_ssid_dd, 1);
-    lv_dropdown_set_options(set_ssid_dd, "(tap \xEF\x80\xA1 to scan)");
-    lv_obj_add_event_cb(set_ssid_dd, set_ssid_dd_cb, LV_EVENT_VALUE_CHANGED, NULL);
-
-    lv_obj_t* scan_btn = lv_button_create(ssid_row);
-    lv_obj_set_size(scan_btn, 38, 38);
-    lv_obj_set_style_bg_color(scan_btn, lv_color_hex(0x1A3A6A), 0);
-    lv_obj_add_event_cb(scan_btn, set_scan_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_t* scan_lbl = lv_label_create(scan_btn);
-    lv_label_set_text(scan_lbl, LV_SYMBOL_REFRESH);
-    lv_obj_set_style_text_color(scan_lbl, lv_color_hex(0xCCCCCC), 0);
-    lv_obj_center(scan_lbl);
-
-    set_pass_ta = set_add_field(form, "WiFi Password", true, pass);
-
-    set_ip_label = lv_label_create(form);
+    set_ip_label = lv_label_create(root);
     lv_label_set_text(set_ip_label, "Connect to WiFi to get IP");
     lv_obj_set_style_text_color(set_ip_label, lv_color_hex(0x607D8B), 0);
     lv_obj_set_style_text_align(set_ip_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_width(set_ip_label, lv_pct(100));
+    lv_obj_set_width(set_ip_label, 300);
+    lv_obj_align_to(set_ip_label, set_qr_cap, LV_ALIGN_OUT_BOTTOM_MID, 0, 8);
 
-    set_btn_row = lv_obj_create(root);
-    lv_obj_t* btn_row = set_btn_row;
-    lv_obj_set_size(btn_row, 260, LV_SIZE_CONTENT);
+    lv_obj_t* btn_row = lv_obj_create(root);
+    lv_obj_set_size(btn_row, 300, LV_SIZE_CONTENT);
     lv_obj_set_scrollbar_mode(btn_row, LV_SCROLLBAR_MODE_OFF);
     lv_obj_remove_flag(btn_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scroll_dir(btn_row, LV_DIR_NONE);
     lv_obj_set_style_bg_opa(btn_row, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(btn_row, 0, 0);
     lv_obj_set_style_pad_all(btn_row, 0, 0);
     lv_obj_set_flex_flow(btn_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(btn_row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
-    lv_obj_align_to(btn_row, form, LV_ALIGN_OUT_BOTTOM_MID, 0, 8);
+    lv_obj_align(btn_row, LV_ALIGN_BOTTOM_MID, 0, -55);
 
     lv_obj_t* back = lv_button_create(btn_row);
     lv_obj_set_style_bg_color(back, lv_color_hex(0x3A3A3A), 0);
@@ -692,30 +526,11 @@ void ci_settings_screen(const char* ssid, const char* pass) {
     lv_label_set_text(back_lbl, "Back");
     lv_obj_center(back_lbl);
 
-    lv_obj_t* save = lv_button_create(btn_row);
-    lv_obj_set_style_bg_color(save, lv_color_hex(0x2E7D32), 0);
-    lv_obj_add_event_cb(save, set_save_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_t* save_lbl = lv_label_create(save);
-    lv_label_set_text(save_lbl, LV_SYMBOL_SAVE "  Save");
-    lv_obj_center(save_lbl);
+    lv_obj_t* next = lv_button_create(btn_row);
+    lv_obj_set_style_bg_color(next, lv_color_hex(0x1A3A6A), 0);
+    lv_obj_add_event_cb(next, set_next_cb, LV_EVENT_CLICKED, NULL);
+    set_next_lbl = lv_label_create(next);
+    lv_obj_center(set_next_lbl);
 
-    set_kb = lv_keyboard_create(root);
-    lv_obj_set_size(set_kb, 420, 300);
-    lv_obj_align(set_kb, LV_ALIGN_BOTTOM_MID, 0, -10);
-    lv_buttonmatrix_set_button_ctrl_all(set_kb, LV_BUTTONMATRIX_CTRL_NO_REPEAT);
-    lv_obj_add_flag(set_kb, LV_OBJ_FLAG_HIDDEN);
-
-    set_float_lbl = lv_label_create(root);
-    lv_label_set_text(set_float_lbl, "");
-    lv_obj_set_style_text_color(set_float_lbl, lv_color_hex(0xB3B3B3), 0);
-    lv_obj_add_flag(set_float_lbl, LV_OBJ_FLAG_HIDDEN);
-
-    set_float_ta = lv_textarea_create(root);
-    lv_textarea_set_one_line(set_float_ta, true);
-    lv_obj_set_width(set_float_ta, 300);
-    lv_obj_add_event_cb(set_float_ta, set_float_ta_cb, LV_EVENT_ALL, NULL);
-    lv_obj_add_flag(set_float_ta, LV_OBJ_FLAG_HIDDEN);
-
-    lv_obj_align(set_float_ta, LV_ALIGN_BOTTOM_MID, 0, -330);
-    lv_obj_align_to(set_float_lbl, set_float_ta, LV_ALIGN_OUT_TOP_LEFT, 0, -2);
+    set_qr_show(0);
 }

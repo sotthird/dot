@@ -21,7 +21,6 @@
 #define INFO_LEN 32
 
 #define POLL_INTERVAL_MS 30000
-#define SCAN_MAX 15
 
 typedef struct {
     int state;
@@ -36,12 +35,6 @@ static ci_buf_t s_buf = {0};
 static SemaphoreHandle_t s_mux = NULL;
 static TaskHandle_t s_poll_task_handle = NULL;
 static bool s_poll_started = false;
-
-/* WiFi scan results — written by scan_task, read by ci_app_update (LVGL task). */
-static char s_scan_ssids[SCAN_MAX][33];
-static uint16_t s_scan_count = 0;
-static bool s_scan_ready = false;
-static bool s_scan_in_progress = false;
 
 /* IP label state — written by on_wifi_connected/disconnected, read by ci_app_update. */
 static char s_ip_url[48] = "";
@@ -117,20 +110,6 @@ static void poll_task(void* arg) {
     }
 }
 
-static void scan_task(void* arg) {
-    (void)arg;
-    char ssids[SCAN_MAX][33];
-    uint16_t count = 0;
-    wifi_sta_scan(ssids, SCAN_MAX, &count);
-    lock();
-    memcpy(s_scan_ssids, ssids, sizeof(ssids));
-    s_scan_count = count;
-    s_scan_ready = true;
-    s_scan_in_progress = false;
-    unlock();
-    vTaskDelete(NULL);
-}
-
 static void start_polling(void) {
     if (s_poll_started)
         return;
@@ -195,43 +174,13 @@ void ci_app_request_refresh(void) {
         xTaskNotify(s_poll_task_handle, 0, eNoAction);
 }
 
-void ci_app_request_scan(void) {
-    lock();
-    bool start_scan = !s_scan_in_progress;
-    if (start_scan) {
-        s_scan_in_progress = true;
-        s_scan_ready = false;
-    }
-    unlock();
-    if (start_scan)
-        xTaskCreate(scan_task, "ci_scan", 4096, NULL, 2, NULL);
+void ci_app_start_provisioning(void) {
+    wifi_sta_start_ap();
+    web_server_start(on_web_config_save);
 }
 
 void ci_app_open_settings(void) {
-    const settings_t* s = settings_get();
-    ci_settings_screen(s->ssid, s->pass);
-    ci_app_request_scan();
-}
-
-/* Called from the touch-screen settings Save button.  Saves SSID + password
- * only, preserving any token/repo/branch already stored in NVS. */
-void ci_app_connect_wifi(const char* ssid, const char* pass) {
-    const settings_t* cur = settings_get();
-    settings_t s = *cur;
-    strncpy(s.ssid, ssid ? ssid : "", sizeof(s.ssid) - 1);
-    s.ssid[sizeof(s.ssid) - 1] = '\0';
-    strncpy(s.pass, pass ? pass : "", sizeof(s.pass) - 1);
-    s.pass[sizeof(s.pass) - 1] = '\0';
-    settings_save(&s);
-
-    ci_set_watch_branch(s.branch);
-    ci_show_orb();
-
-    wifi_sta_start(s.ssid, s.pass);
-    if (settings_is_configured()) {
-        start_polling();
-        ci_app_request_refresh();
-    }
+    ci_settings_screen();
 }
 
 void ci_app_set_branch(const char* branch) {
@@ -265,6 +214,11 @@ void ci_app_init(void) {
         wifi_sta_start(s->ssid, s->pass);
         if (settings_is_configured())
             start_polling();
+    } else {
+        /* No credentials yet — host the SoftAP so the config form is reachable
+         * from a phone on first boot (the STA web server only starts once
+         * connected). */
+        ci_app_start_provisioning();
     }
 #endif
 }
@@ -274,7 +228,7 @@ void ci_app_create_ui(void) {
     ci_orb();
     ci_set_watch_branch(s->branch);
     if (!s->ssid[0])
-        ci_settings_screen(s->ssid, s->pass);
+        ci_settings_screen();
 }
 
 void ci_app_update(void) {
@@ -292,15 +246,6 @@ void ci_app_update(void) {
         s_buf.pending = false;
     }
 
-    bool scan_ready = s_scan_ready;
-    uint16_t scan_count = 0;
-    char scan_ssids[SCAN_MAX][33];
-    if (scan_ready) {
-        scan_count = s_scan_count;
-        memcpy(scan_ssids, s_scan_ssids, sizeof(scan_ssids));
-        s_scan_ready = false;
-    }
-
     bool ip_pending = s_ip_pending;
     char ip_url[48] = "";
     if (ip_pending) {
@@ -312,12 +257,6 @@ void ci_app_update(void) {
 
     if (ci_pending)
         update_ci_orb(state, repo, title, wf, info);
-
-    if (scan_ready) {
-        const char* ptrs[SCAN_MAX];
-        for (uint16_t i = 0; i < scan_count; i++) ptrs[i] = scan_ssids[i];
-        update_ssid_dropdown(ptrs, scan_count);
-    }
 
     if (ip_pending)
         ci_ui_set_url(ip_url);

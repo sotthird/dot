@@ -4,9 +4,15 @@ CONFIG_LV_MEMCPY_MEMSET_STD=y
 CONFIG_LV_USE_USER_DATA=y
 CONFIG_LV_USE_CHART=y
 CONFIG_LV_USE_PERF_MONITOR=y
+CONFIG_LV_USE_QRCODE=y
 
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_PARTITION_TABLE_CUSTOM=y
+
+# Restart the RGB DMA on each VSYNC to stop the panel image drifting/shifting
+# horizontally (FIFO underrun realigns every frame). Fixes the random-per-boot
+# horizontal shift on this PSRAM-framebuffer panel.
+CONFIG_LCD_RGB_RESTART_IN_VSYNC=y
 
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=n
