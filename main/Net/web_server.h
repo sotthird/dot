@@ -6,7 +6,7 @@
 /* Called from the httpd task when POST /api/config delivers a validated,
  * fully-merged settings_t. The callee owns saving, reconnecting WiFi, and
  * triggering a CI poll. */
-typedef void (*web_config_save_cb_t)(const settings_t *merged);
+typedef void (*web_config_save_cb_t)(const settings_t* merged);
 
 /* Start the HTTP server on port 80. on_save is invoked on every successful
  * POST /api/config. Idempotent — safe to call again if already running. */

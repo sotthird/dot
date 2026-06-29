@@ -82,7 +82,8 @@ void LVGL_Init(void) {
     lv_indev_set_read_cb(indev, touchpad_read);
     lv_indev_set_user_data(indev, tp);
     lv_timer_set_period(lv_indev_get_read_timer(indev), 1);
-    lv_indev_set_scroll_limit(indev, 20);  /* raise from default 10 px to reduce mis-classified taps */
+    lv_indev_set_scroll_limit(indev,
+                              20); /* raise from default 10 px to reduce mis-classified taps */
 
     ESP_LOGI(LVGL_TAG, "Install LVGL tick timer");
     const esp_timer_create_args_t tick_timer_args = {.callback = lvgl_tick_cb, .name = "lvgl_tick"};

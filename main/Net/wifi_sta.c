@@ -19,7 +19,7 @@ static EventGroupHandle_t s_eg = NULL;
 static bool s_started = false;
 static bool s_running = false;
 static int s_retry = 0;
-static wifi_sta_connected_cb_t    s_on_connected    = NULL;
+static wifi_sta_connected_cb_t s_on_connected = NULL;
 static wifi_sta_disconnected_cb_t s_on_disconnected = NULL;
 static char s_ip_str[16] = "";
 
@@ -30,7 +30,8 @@ static void on_event(void* arg, esp_event_base_t base, int32_t id, void* data) {
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
         s_ip_str[0] = '\0';
         xEventGroupClearBits(s_eg, CONNECTED_BIT);
-        if (s_on_disconnected) s_on_disconnected();
+        if (s_on_disconnected)
+            s_on_disconnected();
         if (s_retry++ < MAX_RETRY) {
             vTaskDelay(pdMS_TO_TICKS(2000));
             esp_wifi_connect();
@@ -43,7 +44,8 @@ static void on_event(void* arg, esp_event_base_t base, int32_t id, void* data) {
         s_retry = 0;
         xEventGroupSetBits(s_eg, CONNECTED_BIT);
         ESP_LOGI(TAG, "connected, IP: %s", s_ip_str);
-        if (s_on_connected) s_on_connected();
+        if (s_on_connected)
+            s_on_connected();
     }
 }
 
@@ -59,8 +61,8 @@ static void wifi_init(void) {
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(
         esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &on_event, NULL, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &on_event,
-                                                        NULL, NULL));
+    ESP_ERROR_CHECK(
+        esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &on_event, NULL, NULL));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     s_started = true;
 }
@@ -103,7 +105,10 @@ void wifi_sta_scan(char out_ssids[][33], uint16_t max_count, uint16_t* found_cou
     }
 
     if (esp_wifi_scan_start(NULL, true) != ESP_OK) {
-        if (we_started) { esp_wifi_stop(); s_running = false; }
+        if (we_started) {
+            esp_wifi_stop();
+            s_running = false;
+        }
         return;
     }
 
@@ -163,7 +168,7 @@ bool wifi_sta_is_connected(void) {
 
 void wifi_sta_set_callbacks(wifi_sta_connected_cb_t on_connected,
                             wifi_sta_disconnected_cb_t on_disconnected) {
-    s_on_connected    = on_connected;
+    s_on_connected = on_connected;
     s_on_disconnected = on_disconnected;
 }
 

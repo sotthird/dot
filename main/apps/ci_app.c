@@ -142,8 +142,7 @@ static void start_polling(void) {
 
 static void on_web_config_save(const settings_t* s) {
     const settings_t* cur = settings_get();
-    bool wifi_changed = (strcmp(cur->ssid, s->ssid) != 0 ||
-                         strcmp(cur->pass, s->pass) != 0);
+    bool wifi_changed = (strcmp(cur->ssid, s->ssid) != 0 || strcmp(cur->pass, s->pass) != 0);
     lock();
     settings_save(s);
     unlock();
@@ -259,7 +258,8 @@ void ci_app_init(void) {
     const char* ssid = s->ssid[0] ? s->ssid : DEBUG_WIFI_SSID;
     const char* pass = s->ssid[0] ? s->pass : DEBUG_WIFI_PASS;
     wifi_sta_start(ssid, pass);
-    if (settings_is_configured()) start_polling();
+    if (settings_is_configured())
+        start_polling();
 #else
     if (s->ssid[0]) {
         wifi_sta_start(s->ssid, s->pass);
@@ -315,8 +315,7 @@ void ci_app_update(void) {
 
     if (scan_ready) {
         const char* ptrs[SCAN_MAX];
-        for (uint16_t i = 0; i < scan_count; i++)
-            ptrs[i] = scan_ssids[i];
+        for (uint16_t i = 0; i < scan_count; i++) ptrs[i] = scan_ssids[i];
         update_ssid_dropdown(ptrs, scan_count);
     }
 

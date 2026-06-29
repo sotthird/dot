@@ -49,7 +49,7 @@ static lv_obj_t* ci_wf_label;
 static lv_obj_t* ci_branch_dd;
 static lv_obj_t* ci_url_label;
 static lv_obj_t* set_ip_label;
-static lv_obj_t* s_orb_scr      = NULL;
+static lv_obj_t* s_orb_scr = NULL;
 static lv_obj_t* s_settings_scr = NULL;
 static char ci_watch_branch[64] = "";
 
@@ -220,7 +220,8 @@ void ci_ui_set_url(const char* url) {
 }
 
 void ci_show_orb(void) {
-    if (s_orb_scr) lv_screen_load(s_orb_scr);
+    if (s_orb_scr)
+        lv_screen_load(s_orb_scr);
 }
 
 /* Create a transparent full-size container shifted by DISP_H_OFFSET so all
@@ -238,7 +239,10 @@ static lv_obj_t* make_root(lv_obj_t* scr) {
 }
 
 void ci_orb(void) {
-    if (s_orb_scr) { lv_screen_load(s_orb_scr); return; }
+    if (s_orb_scr) {
+        lv_screen_load(s_orb_scr);
+        return;
+    }
     ci_url_label = NULL;
     lv_obj_t* scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x121212), 0);
@@ -436,11 +440,16 @@ static void set_float_close(void) {
         lv_keyboard_set_textarea(set_kb, NULL);
         lv_obj_add_flag(set_kb, LV_OBJ_FLAG_HIDDEN);
     }
-    if (set_float_ta)  lv_obj_add_flag(set_float_ta,  LV_OBJ_FLAG_HIDDEN);
-    if (set_float_lbl) lv_obj_add_flag(set_float_lbl, LV_OBJ_FLAG_HIDDEN);
-    if (set_form)      lv_obj_remove_flag(set_form,      LV_OBJ_FLAG_HIDDEN);
-    if (set_btn_row)   lv_obj_remove_flag(set_btn_row,   LV_OBJ_FLAG_HIDDEN);
-    if (set_title_obj) lv_obj_remove_flag(set_title_obj, LV_OBJ_FLAG_HIDDEN);
+    if (set_float_ta)
+        lv_obj_add_flag(set_float_ta, LV_OBJ_FLAG_HIDDEN);
+    if (set_float_lbl)
+        lv_obj_add_flag(set_float_lbl, LV_OBJ_FLAG_HIDDEN);
+    if (set_form)
+        lv_obj_remove_flag(set_form, LV_OBJ_FLAG_HIDDEN);
+    if (set_btn_row)
+        lv_obj_remove_flag(set_btn_row, LV_OBJ_FLAG_HIDDEN);
+    if (set_title_obj)
+        lv_obj_remove_flag(set_title_obj, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void set_float_ta_cb(lv_event_t* e) {
@@ -450,25 +459,34 @@ static void set_float_ta_cb(lv_event_t* e) {
 }
 
 static void set_ta_event_cb(lv_event_t* e) {
-    if (lv_event_get_code(e) != LV_EVENT_FOCUSED) return;
+    if (lv_event_get_code(e) != LV_EVENT_FOCUSED)
+        return;
     lv_obj_t* ta = lv_event_get_target(e);
     set_active_ta = ta;
 
     const char* field_name = "Enter text";
     bool is_pw = false;
-    if (ta == set_ssid_ta)  { field_name = "WiFi Network"; }
-    if (ta == set_pass_ta)  { field_name = "WiFi Password"; is_pw = true; }
+    if (ta == set_ssid_ta) {
+        field_name = "WiFi Network";
+    }
+    if (ta == set_pass_ta) {
+        field_name = "WiFi Password";
+        is_pw = true;
+    }
 
     lv_label_set_text(set_float_lbl, field_name);
     lv_textarea_set_password_mode(set_float_ta, is_pw);
     lv_textarea_set_text(set_float_ta, lv_textarea_get_text(ta));
 
     lv_obj_remove_flag(set_float_lbl, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(set_float_ta,  LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(set_float_ta, LV_OBJ_FLAG_HIDDEN);
 
-    if (set_form)      lv_obj_add_flag(set_form,      LV_OBJ_FLAG_HIDDEN);
-    if (set_btn_row)   lv_obj_add_flag(set_btn_row,   LV_OBJ_FLAG_HIDDEN);
-    if (set_title_obj) lv_obj_add_flag(set_title_obj, LV_OBJ_FLAG_HIDDEN);
+    if (set_form)
+        lv_obj_add_flag(set_form, LV_OBJ_FLAG_HIDDEN);
+    if (set_btn_row)
+        lv_obj_add_flag(set_btn_row, LV_OBJ_FLAG_HIDDEN);
+    if (set_title_obj)
+        lv_obj_add_flag(set_title_obj, LV_OBJ_FLAG_HIDDEN);
 
     lv_keyboard_set_textarea(set_kb, set_float_ta);
     lv_buttonmatrix_set_button_ctrl_all(set_kb, LV_BUTTONMATRIX_CTRL_NO_REPEAT);
@@ -492,7 +510,8 @@ static lv_obj_t* set_add_field(lv_obj_t* parent, const char* label, bool passwor
 
 static void set_ssid_dd_cb(lv_event_t* e) {
     (void)e;
-    if (!set_ssid_dd || !set_ssid_ta) return;
+    if (!set_ssid_dd || !set_ssid_ta)
+        return;
     char buf[33];
     lv_dropdown_get_selected_str(set_ssid_dd, buf, sizeof(buf));
     lv_textarea_set_text(set_ssid_ta, buf);
@@ -561,7 +580,10 @@ static void set_back_cb(lv_event_t* e) {
 }
 
 void ci_settings_screen(const char* ssid, const char* pass) {
-    if (s_settings_scr) { lv_obj_delete(s_settings_scr); s_settings_scr = NULL; }
+    if (s_settings_scr) {
+        lv_obj_delete(s_settings_scr);
+        s_settings_scr = NULL;
+    }
     set_ssid_dd = NULL;
     set_ssid_ta = NULL;
     set_btn_row = NULL;
