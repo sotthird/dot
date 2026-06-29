@@ -13,7 +13,6 @@
 
 #define TAG "main"
 
-
 static void ci_task(void* arg) {
     (void)arg;
     while (1) {
