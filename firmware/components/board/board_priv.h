@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "board.h"
+#include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_touch.h"
 
@@ -15,6 +16,10 @@
 /* What a board hands to the shared LVGL glue. */
 typedef struct {
     esp_lcd_panel_handle_t panel;
+    /* Set for QSPI panels, which DMA from the draw buffer: the flush then completes
+     * from this IO's transfer-done callback, and pixels go out big-endian. Leave NULL
+     * for RGB panels, which copy into their framebuffer synchronously. */
+    esp_lcd_panel_io_handle_t panel_io;
     esp_lcd_touch_handle_t touch;
 } board_hw_t;
 

@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
-        run: pip install ruff clang-format
+        run: pip install ruff clang-format==21.1.8  # keep in step with .pre-commit-config.yaml
       - name: Ruff lint
         run: ruff check host
       - name: Ruff format check
@@ -35,7 +35,8 @@ jobs:
       - name: Install
         run: pip install -e "host[cpu,spotify,dev]"
       - name: mypy
-        run: mypy host/dot_host host/scripts
+        working-directory: host  # picks up host/pyproject.toml
+        run: mypy dot_host scripts
 
   security:
     name: Security
