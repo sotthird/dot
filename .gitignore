@@ -1,33 +1,28 @@
-# ESP-IDF
-build/
-managed_components/
-dependencies.lock
-sdkconfig
-sdkconfig.old
+# ESP-IDF (firmware/)
+firmware/build/
+firmware/managed_components/
+firmware/dependencies.lock
+firmware/sdkconfig
+firmware/sdkconfig.*
+!firmware/sdkconfig.defaults
 
-# Python
+# Python (host/)
 .venv/
-venv/
 __pycache__/
-*.pyc
-*.pyo
+*.py[co]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
-# Secrets
+# Secrets and local state
 .env
-host/.env
-host/.cache
 .cache
 
-# IDE / tools
+# Editors, tools, OS
 .claude/
 .clangd
 .vscode/
 .idea/
 *.swp
-.ruff_cache/
-
-# OS
 .DS_Store
-
-# Logs
 *.log

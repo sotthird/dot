@@ -1,0 +1,20 @@
+menu "Dot: App"
+
+    choice DOT_APP
+        prompt "App to run on the display"
+        default DOT_APP_CI
+        help
+            Each app owns the whole screen, so exactly one runs at a time. The
+            host side must run the matching app (see host/README).
+
+        config DOT_APP_CI
+            bool "CI status orb"
+
+        config DOT_APP_SPOTIFY
+            bool "Spotify now playing"
+
+        config DOT_APP_CPU
+            bool "CPU gauge"
+    endchoice
+
+endmenu
