@@ -1,27 +1,15 @@
-This project includes third-party board support / driver code derived from
-Waveshare's ESP32-S3-Touch-LCD-2.1 demo firmware and Espressif's esp_lcd_touch
-component, both licensed under the Apache License, Version 2.0 (see
-LICENSE-APACHE).
+This project includes board support code derived from Waveshare's demo firmware for the
+ESP32-S3-Touch-LCD-2.1 and from Espressif's esp_lcd_touch component, both licensed under
+the Apache License, Version 2.0 (see LICENSE-APACHE).
 
   Copyright Waveshare
   Copyright 2022-2023 Espressif Systems (Shanghai) CO LTD
 
-The following directories contain code derived from those sources and have
-been modified for use in this project (restructured, integrated with the app
-framework in main/app.c and main/apps/, and adapted for this project's LVGL
-UI):
+The following files contain code derived from those sources and have been modified for
+use in this project (restructured, and adapted to its board abstraction and LVGL setup):
 
-  main/BAT_Driver/
-  main/Buzzer/
-  main/EXIO/
-  main/I2C_Driver/
-  main/LCD_Driver/
-  main/LVGL_Driver/
-  main/PCF85063/
-  main/QMI8658/
-  main/SD_Card/
-  main/Touch_Driver/
-  main/Wireless/
+  firmware/components/board/lcd_2_1/     (ST7701S register table, CST820 driver)
+  firmware/components/board/lvgl_port.c
 
-All other code in this repository (main/app.c, main/apps/, main/LVGL_UI/,
-main/main.c, host/, and project configuration) is original to this project.
+All other code in this repository (firmware/main/, host/, and project configuration) is
+original to this project.

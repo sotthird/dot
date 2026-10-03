@@ -7,92 +7,61 @@ on:
     branches: [main]
 
 jobs:
-  # ── Lint ─────────────────────────────────────────────────────────────────
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install ruff
-        run: pip install ruff
-
+      - name: Install tools
+        run: pip install ruff clang-format
       - name: Ruff lint
-        run: ruff check .
-
+        run: ruff check host
       - name: Ruff format check
-        run: ruff format --check .
-
-      - name: Install clang-format
-        run: sudo apt-get install -y clang-format
-
+        run: ruff format --check host
       - name: clang-format check
-        run: |
-          find . -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror
+        run: find firmware \( -name "*.c" -o -name "*.h" \) | xargs clang-format --dry-run --Werror
 
-  # ── Type check ───────────────────────────────────────────────────────────
   typecheck:
-    name: Type Check
+    name: Type check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          pip install mypy
-          [ -f requirements.txt ] && pip install -r requirements.txt || true
-
+      - name: Install
+        run: pip install -e "host[cpu,spotify,dev]"
       - name: mypy
-        run: mypy . --ignore-missing-imports
+        run: mypy host/dot_host host/scripts
 
-  # ── Security ─────────────────────────────────────────────────────────────
   security:
     name: Security
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Upgrade pip
-        run: pip install --upgrade pip
-      - name: Install detect-secrets
-        run: pip install detect-secrets
+      - name: Install
+        run: pip install -e "host[cpu,spotify]" detect-secrets pip-audit
       - name: Secret scan
         run: detect-secrets scan --baseline .secrets.baseline
-      - name: Install pip-audit
-        run: pip install pip-audit
       - name: Dependency vulnerability scan
-        run: |
-          [ -f requirements.txt ] && pip-audit -r requirements.txt || pip-audit
+        run: pip-audit
 
-  # ── Tests ─────────────────────────────────────────────────────────────────
   test:
     name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          pip install pytest pytest-cov
-          [ -f requirements.txt ] && pip install -r requirements.txt || true
-
-      - name: Run tests
-        run: pytest --cov --cov-report=term-missing -q
+      - name: Install
+        run: pip install -e "host[cpu,spotify,dev]"
+      - name: pytest
+        working-directory: host
+        run: pytest -q
