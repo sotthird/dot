@@ -88,12 +88,15 @@ void board_lvgl_init(const board_hw_t* hw) {
     }
     lv_display_set_draw_buffers(disp, &draw_buf[0], &draw_buf[1]);
 
-    lv_indev_t* indev = lv_indev_create();
-    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_display(indev, disp);
-    lv_indev_set_read_cb(indev, touch_read);
-    lv_indev_set_user_data(indev, hw->touch);
-    lv_timer_set_period(lv_indev_get_read_timer(indev), TOUCH_POLL_MS);
+    /* A board without a working touch controller yet simply has no input device */
+    if (hw->touch) {
+        lv_indev_t* indev = lv_indev_create();
+        lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+        lv_indev_set_display(indev, disp);
+        lv_indev_set_read_cb(indev, touch_read);
+        lv_indev_set_user_data(indev, hw->touch);
+        lv_timer_set_period(lv_indev_get_read_timer(indev), TOUCH_POLL_MS);
+    }
 
     const esp_timer_create_args_t tick_args = {.callback = tick_cb, .name = "lvgl_tick"};
     esp_timer_handle_t tick_timer;

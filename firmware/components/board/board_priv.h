@@ -11,7 +11,12 @@
 #define BOARD_DRAW_BUF_ROWS 20
 #define BOARD_DRAW_BUF_BYTES (BOARD_LCD_H_RES * BOARD_DRAW_BUF_ROWS * 2)
 
+/* An AMOLED is much brighter than the LCD at the same setting */
+#if CONFIG_DOT_BOARD_AMOLED_2_16
+#define BOARD_DEFAULT_BRIGHTNESS 30
+#else
 #define BOARD_DEFAULT_BRIGHTNESS 70
+#endif
 
 /* What a board hands to the shared LVGL glue. */
 typedef struct {

@@ -1,12 +1,9 @@
 /* Waveshare ESP32-S3-Touch-AMOLED-2.16: CO5300 QSPI AMOLED, CST9217 touch, no backlight pin
  * (brightness is a panel command). */
 
-#include <stdlib.h>
-
 #include "board_priv.h"
 #include "driver/spi_master.h"
 #include "esp_check.h"
-#include "esp_heap_caps.h"
 #include "esp_lcd_co5300.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -84,53 +81,12 @@ void board_set_brightness(uint8_t percent) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_lcd_panel_co5300_set_brightness(s_panel, percent));
 }
 
-/* Phase 2 bring-up check, replaced by LVGL in the next phase.
- *
- * Top strip: white on the left half, black on the right, so a mirrored or rotated panel is
- * obvious. Below it, eight vertical bars: red, green, blue, yellow, cyan, magenta, white, black.
- * Then the brightness ramps forever. The two strip buffers are only read by DMA, never
- * rewritten, so they need no transfer-done synchronization. */
-static void bringup_test_pattern(void) {
-    static const uint16_t bars[] = {0xF800, 0x07E0, 0x001F, 0xFFE0, 0x07FF, 0xF81F, 0xFFFF, 0x0000};
-    const int bar_w = BOARD_LCD_H_RES / 8;
-
-    uint16_t* marker = heap_caps_malloc(BOARD_DRAW_BUF_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
-    uint16_t* stripe = heap_caps_malloc(BOARD_DRAW_BUF_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
-    assert(marker && stripe);
-
-    /* The panel takes pixels big-endian */
-    for (int row = 0; row < BOARD_DRAW_BUF_ROWS; row++) {
-        for (int x = 0; x < BOARD_LCD_H_RES; x++) {
-            marker[row * BOARD_LCD_H_RES + x] = x < BOARD_LCD_H_RES / 2 ? 0xFFFF : 0x0000;
-            stripe[row * BOARD_LCD_H_RES + x] = __builtin_bswap16(bars[x / bar_w]);
-        }
-    }
-
-    for (int y = 0; y < BOARD_LCD_V_RES; y += BOARD_DRAW_BUF_ROWS) {
-        const uint16_t* src = y == 0 ? marker : stripe;
-        ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(s_panel, 0, y, BOARD_LCD_H_RES,
-                                                  y + BOARD_DRAW_BUF_ROWS, src));
-    }
-
-    ESP_LOGI(TAG, "test pattern drawn; ramping brightness (Phase 2 check)");
-    for (;;) {
-        for (int p = 100; p >= 10; p -= 2) {
-            board_set_brightness(p);
-            vTaskDelay(pdMS_TO_TICKS(40));
-        }
-        for (int p = 10; p <= 100; p += 2) {
-            board_set_brightness(p);
-            vTaskDelay(pdMS_TO_TICKS(40));
-        }
-    }
-}
-
 void board_hw_init(board_hw_t* hw) {
     hw->panel_io = panel_init();
     hw->panel = s_panel;
     ESP_LOGI(TAG, "CO5300 panel ready");
 
-    bringup_test_pattern(); /* does not return in Phase 2 */
+    board_set_brightness(BOARD_DEFAULT_BRIGHTNESS);
 
-    /* Touch arrives in a later phase */
+    /* Touch (hw->touch) arrives in a later phase; LVGL runs without an input device until then. */
 }
