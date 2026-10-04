@@ -59,7 +59,8 @@ esp_err_t qmi8658_init(i2c_master_bus_handle_t bus) {
     };
     ESP_RETURN_ON_ERROR(i2c_master_bus_add_device(bus, &cfg, &s_dev), TAG, "add device");
 
-    ESP_RETURN_ON_ERROR(write_reg(REG_RESET, RESET_CMD), TAG, "no response at 0x%02x", QMI8658_ADDR);
+    ESP_RETURN_ON_ERROR(write_reg(REG_RESET, RESET_CMD), TAG, "no response at 0x%02x",
+                        QMI8658_ADDR);
     uint8_t result = 0;
     for (int waited = 0; result != RESET_DONE && waited < 500; waited += 10) {
         vTaskDelay(pdMS_TO_TICKS(10));

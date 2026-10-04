@@ -21,7 +21,7 @@ static const char* TAG = "lvgl";
 #define ROTATE_TILT_MIN 0.5f /* ignore tilts under ~30 degrees from flat */
 #define ROTATE_AMBIGUOUS 255
 
-static uint8_t s_rotation; /* quarter turns clockwise from the default mounting, 0-3 */
+static uint8_t s_rotation;  /* quarter turns clockwise from the default mounting, 0-3 */
 static uint16_t* s_rot_buf; /* DMA-capable; holds one rotated strip */
 static esp_err_t (*s_read_accel)(float* ax, float* ay);
 
@@ -32,33 +32,33 @@ static void rotate_area(const uint16_t* src, const lv_area_t* a, lv_area_t* dst)
     const int h = lv_area_get_height(a);
 
     switch (s_rotation) {
-    case 1: /* 90 CW: (x,y) -> (S-1-y, x) */
-        dst->x1 = S - a->y1 - h;
-        dst->y1 = a->x1;
-        dst->x2 = dst->x1 + h - 1;
-        dst->y2 = dst->y1 + w - 1;
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-                s_rot_buf[x * h + (h - 1 - y)] = __builtin_bswap16(src[y * w + x]);
-        break;
-    case 2: /* 180: (x,y) -> (S-1-x, S-1-y) */
-        dst->x1 = S - a->x1 - w;
-        dst->y1 = S - a->y1 - h;
-        dst->x2 = dst->x1 + w - 1;
-        dst->y2 = dst->y1 + h - 1;
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-                s_rot_buf[(h - 1 - y) * w + (w - 1 - x)] = __builtin_bswap16(src[y * w + x]);
-        break;
-    default: /* 270 CW: (x,y) -> (y, S-1-x) */
-        dst->x1 = a->y1;
-        dst->y1 = S - a->x1 - w;
-        dst->x2 = dst->x1 + h - 1;
-        dst->y2 = dst->y1 + w - 1;
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-                s_rot_buf[(w - 1 - x) * h + y] = __builtin_bswap16(src[y * w + x]);
-        break;
+        case 1: /* 90 CW: (x,y) -> (S-1-y, x) */
+            dst->x1 = S - a->y1 - h;
+            dst->y1 = a->x1;
+            dst->x2 = dst->x1 + h - 1;
+            dst->y2 = dst->y1 + w - 1;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                    s_rot_buf[x * h + (h - 1 - y)] = __builtin_bswap16(src[y * w + x]);
+            break;
+        case 2: /* 180: (x,y) -> (S-1-x, S-1-y) */
+            dst->x1 = S - a->x1 - w;
+            dst->y1 = S - a->y1 - h;
+            dst->x2 = dst->x1 + w - 1;
+            dst->y2 = dst->y1 + h - 1;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                    s_rot_buf[(h - 1 - y) * w + (w - 1 - x)] = __builtin_bswap16(src[y * w + x]);
+            break;
+        default: /* 270 CW: (x,y) -> (y, S-1-x) */
+            dst->x1 = a->y1;
+            dst->y1 = S - a->x1 - w;
+            dst->x2 = dst->x1 + h - 1;
+            dst->y2 = dst->y1 + w - 1;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                    s_rot_buf[(w - 1 - x) * h + y] = __builtin_bswap16(src[y * w + x]);
+            break;
     }
 }
 
@@ -69,22 +69,22 @@ static void unrotate_point(int32_t* x, int32_t* y) {
     int32_t py = *y < 0 ? 0 : *y > max ? max : *y;
 
     switch (s_rotation) {
-    case 1:
-        *x = py;
-        *y = max - px;
-        break;
-    case 2:
-        *x = max - px;
-        *y = max - py;
-        break;
-    case 3:
-        *x = max - py;
-        *y = px;
-        break;
-    default:
-        *x = px;
-        *y = py;
-        break;
+        case 1:
+            *x = py;
+            *y = max - px;
+            break;
+        case 2:
+            *x = max - px;
+            *y = max - py;
+            break;
+        case 3:
+            *x = max - py;
+            *y = px;
+            break;
+        default:
+            *x = px;
+            *y = py;
+            break;
     }
 }
 
@@ -129,15 +129,6 @@ static void rotate_timer_cb(lv_timer_t* timer) {
     if (s_read_accel(&ax, &ay) != ESP_OK)
         return;
 
-#if BOARD_ROTATE_DEBUG
-    static uint8_t debug_n;
-    if (++debug_n >= 10) {
-        debug_n = 0;
-        ESP_LOGI(TAG, "accel ax=%.2f ay=%.2f -> %d (now %d)", ax, ay, accel_to_rotation(ax, ay),
-                 s_rotation);
-    }
-#endif
-
     const uint8_t target = accel_to_rotation(ax, ay);
     if (target == ROTATE_AMBIGUOUS || target == s_rotation) {
         candidate = s_rotation;
@@ -150,6 +141,7 @@ static void rotate_timer_cb(lv_timer_t* timer) {
     } else if (now - candidate_since >= ROTATE_STABLE_MS) {
         s_rotation = target;
         ESP_LOGI(TAG, "rotation %d (ax=%.2f ay=%.2f)", s_rotation, ax, ay);
+        lv_display_trigger_activity(NULL); /* picking the board up ends any idle dimming */
         board_set_brightness(0);
         lv_obj_invalidate(lv_screen_active());
         ramp_step = 0;
@@ -196,6 +188,20 @@ static void round_area_to_even(lv_event_t* e) {
     area->y2 |= 1;
 }
 
+#if CONFIG_DOT_IDLE_DIM_SECONDS > 0
+/* A lit AMOLED pixel wears, and an app like ci holds one color for hours: dim when nobody has
+ * touched the screen for a while and restore on the next touch. */
+static void idle_dim_cb(lv_timer_t* timer) {
+    static bool dimmed;
+    const bool idle =
+        lv_display_get_inactive_time(NULL) >= (uint32_t)CONFIG_DOT_IDLE_DIM_SECONDS * 1000;
+    if (idle == dimmed)
+        return;
+    dimmed = idle;
+    board_set_brightness(idle ? CONFIG_DOT_IDLE_DIM_PERCENT : BOARD_DEFAULT_BRIGHTNESS);
+}
+#endif
+
 static void touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
     esp_lcd_touch_handle_t touch = lv_indev_get_user_data(indev);
     esp_lcd_touch_point_data_t point;
@@ -214,17 +220,6 @@ static void touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
-
-#if BOARD_TOUCH_DEBUG
-    static lv_indev_state_t last_state = LV_INDEV_STATE_RELEASED;
-    if (data->state != last_state) {
-        if (data->state == LV_INDEV_STATE_PRESSED)
-            ESP_LOGI(TAG, "touch down x=%d y=%d", (int)data->point.x, (int)data->point.y);
-        else
-            ESP_LOGI(TAG, "touch up");
-        last_state = data->state;
-    }
-#endif
 }
 
 static void tick_cb(void* arg) {
@@ -275,6 +270,10 @@ void board_lvgl_init(const board_hw_t* hw) {
         s_read_accel = hw->read_accel;
         lv_timer_create(rotate_timer_cb, ROTATE_TICK_MS, NULL);
     }
+#endif
+
+#if CONFIG_DOT_IDLE_DIM_SECONDS > 0
+    lv_timer_create(idle_dim_cb, 1000, NULL);
 #endif
 
     const esp_timer_create_args_t tick_args = {.callback = tick_cb, .name = "lvgl_tick"};

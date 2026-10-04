@@ -23,4 +23,21 @@ menu "Dot: Board"
             board is held. Needs the onboard QMI8658 accelerometer. Turn off to
             keep the display in its default orientation.
 
+    config DOT_IDLE_DIM_SECONDS
+        int "Dim the display after this many idle seconds (0 = never)"
+        default 300
+        range 0 86400
+        depends on DOT_BOARD_AMOLED_2_16
+        help
+            A lit AMOLED pixel wears out, and apps like ci hold one color for
+            hours. After this long without a touch the display dims, and the
+            next touch brings it back. Serial data from the host does not count
+            as activity.
+
+    config DOT_IDLE_DIM_PERCENT
+        int "Brightness when dimmed, in percent"
+        default 15
+        range 0 100
+        depends on DOT_BOARD_AMOLED_2_16 && DOT_IDLE_DIM_SECONDS > 0
+
 endmenu

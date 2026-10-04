@@ -20,12 +20,6 @@
 #define BOARD_TOUCH_POLL_MS 2
 #endif
 
-/* Phase 4 bring-up: log each press and release with the coordinates LVGL receives. */
-#define BOARD_TOUCH_DEBUG 1
-
-/* Auto-rotation bring-up: log the accelerometer reading once a second. */
-#define BOARD_ROTATE_DEBUG 1
-
 /* An AMOLED is much brighter than the LCD at the same setting */
 #if CONFIG_DOT_BOARD_AMOLED_2_16
 #define BOARD_DEFAULT_BRIGHTNESS 30
