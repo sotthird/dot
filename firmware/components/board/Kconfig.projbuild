@@ -1,0 +1,17 @@
+menu "Dot: Board"
+
+    choice DOT_BOARD
+        prompt "Display board"
+        default DOT_BOARD_LCD_2_1
+        help
+            The hardware the firmware runs on. Selects the panel, touch and
+            power drivers that are built.
+
+        config DOT_BOARD_LCD_2_1
+            bool "Waveshare ESP32-S3-Touch-LCD-2.1"
+
+        config DOT_BOARD_AMOLED_2_16
+            bool "Waveshare ESP32-S3-Touch-AMOLED-2.16"
+    endchoice
+
+endmenu
