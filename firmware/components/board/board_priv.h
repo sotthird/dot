@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "board.h"
+#include "esp_err.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_touch.h"
@@ -22,6 +23,9 @@
 /* Phase 4 bring-up: log each press and release with the coordinates LVGL receives. */
 #define BOARD_TOUCH_DEBUG 1
 
+/* Auto-rotation bring-up: log the accelerometer reading once a second. */
+#define BOARD_ROTATE_DEBUG 1
+
 /* An AMOLED is much brighter than the LCD at the same setting */
 #if CONFIG_DOT_BOARD_AMOLED_2_16
 #define BOARD_DEFAULT_BRIGHTNESS 30
@@ -37,6 +41,9 @@ typedef struct {
      * for RGB panels, which copy into their framebuffer synchronously. */
     esp_lcd_panel_io_handle_t panel_io;
     esp_lcd_touch_handle_t touch;
+    /* Optional. Reads the gravity direction along the panel's X and Y axes, in g, so the
+     * display can follow how the board is held. Leave NULL on boards without an IMU. */
+    esp_err_t (*read_accel)(float* ax, float* ay);
 } board_hw_t;
 
 /* Implemented by each board: reset and configure the panel and touch controller. */

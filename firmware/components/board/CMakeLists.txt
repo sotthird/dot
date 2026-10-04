@@ -1,6 +1,7 @@
 if(CONFIG_DOT_BOARD_AMOLED_2_16)
     set(board_srcs
         "lcd_2_16/board_amoled_2_16.c"
+        "lcd_2_16/qmi8658.c"
     )
 else()
     set(board_srcs

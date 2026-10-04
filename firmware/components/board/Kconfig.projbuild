@@ -14,4 +14,13 @@ menu "Dot: Board"
             bool "Waveshare ESP32-S3-Touch-AMOLED-2.16"
     endchoice
 
+    config DOT_AUTO_ROTATE
+        bool "Auto-rotate the display with the accelerometer"
+        default y
+        depends on DOT_BOARD_AMOLED_2_16
+        help
+            Turn the picture, and the touch input with it, to follow how the
+            board is held. Needs the onboard QMI8658 accelerometer. Turn off to
+            keep the display in its default orientation.
+
 endmenu

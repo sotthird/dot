@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "qmi8658.h"
 
 static const char* TAG = "board";
 
@@ -126,6 +127,11 @@ static esp_lcd_touch_handle_t touch_init(i2c_master_bus_handle_t bus) {
     return touch;
 }
 
+static esp_err_t read_accel_xy(float* ax, float* ay) {
+    float az;
+    return qmi8658_read_accel(ax, ay, &az);
+}
+
 void board_hw_init(board_hw_t* hw) {
     hw->panel_io = panel_init();
     hw->panel = s_panel;
@@ -133,6 +139,13 @@ void board_hw_init(board_hw_t* hw) {
 
     board_set_brightness(BOARD_DEFAULT_BRIGHTNESS);
 
-    hw->touch = touch_init(i2c_init());
+    i2c_master_bus_handle_t bus = i2c_init();
+    hw->touch = touch_init(bus);
+
+    /* Without the accelerometer the display just stays in its default orientation */
+    if (qmi8658_init(bus) == ESP_OK)
+        hw->read_accel = read_accel_xy;
+    else
+        ESP_LOGW(TAG, "accelerometer not found, auto-rotation disabled");
     ESP_LOGI(TAG, "ESP32-S3-Touch-AMOLED-2.16 ready");
 }
