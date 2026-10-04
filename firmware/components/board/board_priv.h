@@ -11,6 +11,17 @@
 #define BOARD_DRAW_BUF_ROWS 20
 #define BOARD_DRAW_BUF_BYTES (BOARD_LCD_H_RES * BOARD_DRAW_BUF_ROWS * 2)
 
+/* How often LVGL polls the touch controller. The CST9217 driver sleeps a few ms inside every
+ * read, which would eat the UI task at 2 ms, so poll it less often. */
+#if CONFIG_DOT_BOARD_AMOLED_2_16
+#define BOARD_TOUCH_POLL_MS 10
+#else
+#define BOARD_TOUCH_POLL_MS 2
+#endif
+
+/* Phase 4 bring-up: log each press and release with the coordinates LVGL receives. */
+#define BOARD_TOUCH_DEBUG 1
+
 /* An AMOLED is much brighter than the LCD at the same setting */
 #if CONFIG_DOT_BOARD_AMOLED_2_16
 #define BOARD_DEFAULT_BRIGHTNESS 30

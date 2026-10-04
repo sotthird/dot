@@ -2,9 +2,11 @@
  * (brightness is a panel command). */
 
 #include "board_priv.h"
+#include "driver/i2c_master.h"
 #include "driver/spi_master.h"
 #include "esp_check.h"
 #include "esp_lcd_co5300.h"
+#include "esp_lcd_touch_cst9217.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -18,6 +20,13 @@ static const char* TAG = "board";
 #define PIN_LCD_D2 6
 #define PIN_LCD_D3 7
 #define PIN_LCD_RST 39
+
+#define PIN_I2C_SCL 14
+#define PIN_I2C_SDA 15
+#define PIN_TOUCH_INT 11
+#define PIN_TOUCH_RST 40
+
+#define I2C_CLOCK_HZ 400000
 
 #define LCD_SPI_HOST SPI2_HOST
 
@@ -81,6 +90,42 @@ void board_set_brightness(uint8_t percent) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_lcd_panel_co5300_set_brightness(s_panel, percent));
 }
 
+static i2c_master_bus_handle_t i2c_init(void) {
+    const i2c_master_bus_config_t cfg = {
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .i2c_port = I2C_NUM_0,
+        .scl_io_num = PIN_I2C_SCL,
+        .sda_io_num = PIN_I2C_SDA,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
+    };
+    i2c_master_bus_handle_t bus;
+    ESP_ERROR_CHECK(i2c_new_master_bus(&cfg, &bus));
+    return bus;
+}
+
+static esp_lcd_touch_handle_t touch_init(i2c_master_bus_handle_t bus) {
+    esp_lcd_panel_io_handle_t io;
+    esp_lcd_panel_io_i2c_config_t io_cfg = ESP_LCD_TOUCH_IO_I2C_CST9217_CONFIG();
+    io_cfg.scl_speed_hz = I2C_CLOCK_HZ;
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(bus, &io_cfg, &io));
+
+    /* esp_lcd_touch mirrors first, then swaps. The controller's axes are transposed relative to
+     * the panel, so swap and mirror X (what Clawdmeter uses for this board). The driver pulses
+     * the reset line itself. */
+    const esp_lcd_touch_config_t cfg = {
+        .x_max = BOARD_LCD_H_RES,
+        .y_max = BOARD_LCD_V_RES,
+        .rst_gpio_num = PIN_TOUCH_RST,
+        .int_gpio_num = PIN_TOUCH_INT,
+        .levels = {.reset = 0, .interrupt = 0},
+        .flags = {.swap_xy = 1, .mirror_x = 1, .mirror_y = 0},
+    };
+    esp_lcd_touch_handle_t touch;
+    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_cst9217(io, &cfg, &touch));
+    return touch;
+}
+
 void board_hw_init(board_hw_t* hw) {
     hw->panel_io = panel_init();
     hw->panel = s_panel;
@@ -88,5 +133,6 @@ void board_hw_init(board_hw_t* hw) {
 
     board_set_brightness(BOARD_DEFAULT_BRIGHTNESS);
 
-    /* Touch (hw->touch) arrives in a later phase; LVGL runs without an input device until then. */
+    hw->touch = touch_init(i2c_init());
+    ESP_LOGI(TAG, "ESP32-S3-Touch-AMOLED-2.16 ready");
 }

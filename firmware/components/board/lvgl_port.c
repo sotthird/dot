@@ -8,7 +8,6 @@
 #include "lvgl.h"
 
 #define TICK_PERIOD_MS 2
-#define TOUCH_POLL_MS 2
 
 static const char* TAG = "lvgl";
 
@@ -47,14 +46,27 @@ static void touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
     esp_lcd_touch_point_data_t point;
     uint8_t count = 0;
 
-    esp_lcd_touch_read_data(touch);
-    if (esp_lcd_touch_get_data(touch, &point, &count, 1) == ESP_OK && count > 0) {
+    /* A failed read leaves the previous point behind in the driver, so treat it as released
+     * rather than a finger stuck down. */
+    if (esp_lcd_touch_read_data(touch) == ESP_OK &&
+        esp_lcd_touch_get_data(touch, &point, &count, 1) == ESP_OK && count > 0) {
         data->point.x = point.x;
         data->point.y = point.y;
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
+
+#if BOARD_TOUCH_DEBUG
+    static lv_indev_state_t last_state = LV_INDEV_STATE_RELEASED;
+    if (data->state != last_state) {
+        if (data->state == LV_INDEV_STATE_PRESSED)
+            ESP_LOGI(TAG, "touch down x=%d y=%d", (int)data->point.x, (int)data->point.y);
+        else
+            ESP_LOGI(TAG, "touch up");
+        last_state = data->state;
+    }
+#endif
 }
 
 static void tick_cb(void* arg) {
@@ -95,7 +107,7 @@ void board_lvgl_init(const board_hw_t* hw) {
         lv_indev_set_display(indev, disp);
         lv_indev_set_read_cb(indev, touch_read);
         lv_indev_set_user_data(indev, hw->touch);
-        lv_timer_set_period(lv_indev_get_read_timer(indev), TOUCH_POLL_MS);
+        lv_timer_set_period(lv_indev_get_read_timer(indev), BOARD_TOUCH_POLL_MS);
     }
 
     const esp_timer_create_args_t tick_args = {.callback = tick_cb, .name = "lvgl_tick"};
