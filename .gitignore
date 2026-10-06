@@ -5,6 +5,7 @@ firmware/dependencies.lock
 firmware/sdkconfig
 firmware/sdkconfig.*
 !firmware/sdkconfig.defaults
+managed_components/
 
 # Python (host/)
 .venv/

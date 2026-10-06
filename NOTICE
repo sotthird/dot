@@ -1,5 +1,6 @@
 This project includes board support code derived from Waveshare's demo firmware for the
-ESP32-S3-Touch-LCD-2.1 and from Espressif's esp_lcd_touch component, both licensed under
+ESP32-S3-Touch-LCD-2.1 and ESP32-S3-Touch-AMOLED-2.16 and from Espressif's esp_lcd_touch
+component, all licensed under
 the Apache License, Version 2.0 (see LICENSE-APACHE).
 
   Copyright Waveshare
@@ -9,6 +10,7 @@ The following files contain code derived from those sources and have been modifi
 use in this project (restructured, and adapted to its board abstraction and LVGL setup):
 
   firmware/components/board/lcd_2_1/     (ST7701S register table, CST820 driver)
+  firmware/components/board/lcd_2_16/    (CO5300 init sequence and pin map)
   firmware/components/board/lvgl_port.c
 
 All other code in this repository (firmware/main/, host/, and project configuration) is

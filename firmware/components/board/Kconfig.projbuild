@@ -1,0 +1,43 @@
+menu "Dot: Board"
+
+    choice DOT_BOARD
+        prompt "Display board"
+        default DOT_BOARD_LCD_2_1
+        help
+            The hardware the firmware runs on. Selects the panel, touch and
+            power drivers that are built.
+
+        config DOT_BOARD_LCD_2_1
+            bool "Waveshare ESP32-S3-Touch-LCD-2.1"
+
+        config DOT_BOARD_AMOLED_2_16
+            bool "Waveshare ESP32-S3-Touch-AMOLED-2.16"
+    endchoice
+
+    config DOT_AUTO_ROTATE
+        bool "Auto-rotate the display with the accelerometer"
+        default y
+        depends on DOT_BOARD_AMOLED_2_16
+        help
+            Turn the picture, and the touch input with it, to follow how the
+            board is held. Needs the onboard QMI8658 accelerometer. Turn off to
+            keep the display in its default orientation.
+
+    config DOT_IDLE_DIM_SECONDS
+        int "Dim the display after this many idle seconds (0 = never)"
+        default 300
+        range 0 86400
+        depends on DOT_BOARD_AMOLED_2_16
+        help
+            A lit AMOLED pixel wears out, and apps like ci hold one color for
+            hours. After this long without a touch the display dims, and the
+            next touch brings it back. Serial data from the host does not count
+            as activity.
+
+    config DOT_IDLE_DIM_PERCENT
+        int "Brightness when dimmed, in percent"
+        default 15
+        range 0 100
+        depends on DOT_BOARD_AMOLED_2_16 && DOT_IDLE_DIM_SECONDS > 0
+
+endmenu

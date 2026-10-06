@@ -7,8 +7,14 @@ computer.
 Each screen is an **app** with a half on each side of the cable, so adding one never touches the
 framework.
 
-**Hardware:** [Waveshare ESP32-S3-Touch-LCD-2.1](https://www.waveshare.com/esp32-s3-touch-lcd-2.1.htm),
-a 480×480 round display with touch, 16 MB flash and octal PSRAM, drawn with [LVGL 9](https://lvgl.io/).
+**Hardware**, drawn with [LVGL 9](https://lvgl.io/). Choose the board in `idf.py menuconfig` →
+*Dot: Board*:
+
+- [Waveshare ESP32-S3-Touch-LCD-2.1](https://www.waveshare.com/esp32-s3-touch-lcd-2.1.htm), a
+  480×480 round display with touch, 16 MB flash and octal PSRAM (the default).
+- [Waveshare ESP32-S3-Touch-AMOLED-2.16](https://www.waveshare.com/esp32-s3-touch-amoled-2.16.htm),
+  a 480×480 AMOLED with touch that turns its picture to follow how it is held, and dims when idle.
+
 Pins and details: [`firmware/components/board`](firmware/components/board/README.md).
 
 ## Apps
@@ -29,7 +35,7 @@ v6.0 or newer, active in your shell.
 ```bash
 cd firmware
 idf.py set-target esp32s3                    # first time only
-idf.py menuconfig                            # optional: Dot: App picks the app (default: ci)
+idf.py menuconfig                            # Dot: Board picks the hardware, Dot: App the app (default: ci)
 idf.py -p /dev/ttyACM0 build flash monitor   # exit the monitor with Ctrl-]
 ```
 
@@ -75,6 +81,7 @@ under a lock; the UI task then calls `update()` to render it.
 firmware/                    ESP-IDF project
 ├── components/board/        everything board-specific, behind board_init()
 │   ├── lcd_2_1/             ST7701S RGB panel, CST820 touch, IO expander
+│   ├── lcd_2_16/            CO5300 QSPI AMOLED, CST9217 touch, QMI8658 accelerometer
 │   └── lvgl_port.c          LVGL display, input and tick
 └── main/
     ├── main.c               startup
@@ -112,7 +119,12 @@ find firmware -name '*.[ch]' -not -path '*/build/*' -not -path '*/managed_compon
 
 ## Troubleshooting
 
-- **Blank display:** watch `monitor` for errors during `board_init`.
+- **Blank display:** watch `monitor` for errors during `board_init`. Check that *Dot: Board*
+  matches your hardware.
+- **AMOLED picture sideways or mirrored, or touch off:** the scan direction is the `0x36` entry in
+  `lcd_2_16/board_amoled_2_16.c` and the touch flags are in `touch_init()` there.
+- **AMOLED never rotates:** the log should say `qmi8658: accelerometer ready`. If it says the
+  accelerometer was not found, the I2C address in `lcd_2_16/qmi8658.c` is wrong for your board.
 - **No data on screen:** the host must run the same app the firmware was built with, on the right port.
 - **`Resource busy` on the port:** another process, often `idf.py monitor`, has it open.
 - **Spotify HTTP 429:** the host already honors `Retry-After`; raise `POLL_INTERVAL` in `dot_host/cli.py`.
