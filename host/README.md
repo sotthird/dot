@@ -9,40 +9,32 @@ serial. Each app here pairs with the firmware app of the same name.
 cd host
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .                  # core (pyserial)
-pip install -e ".[cpu]"           # + psutil, for the CPU gauge
-pip install -e ".[spotify]"       # + spotipy, pillow, ..., for Now Playing
+pip install -e ".[<app>]"         # plus the extras an app needs, if it lists any
 ```
 
-The CI orb needs no Python extras, only the [`gh` CLI](https://cli.github.com/).
+Each app's README, in `firmware/main/apps/<name>/`, says what it needs and how to set up its data
+source.
 
 ## Run
 
 ```bash
-dot-host ci                       # or: python -m dot_host ci
-dot-host spotify --port /dev/ttyACM1
+dot-host <app>                    # or: python -m dot_host <app>
+dot-host <app> --port /dev/ttyACM1
 ```
 
 The app must match the one the firmware was built with. `--port` defaults to
 `/dev/ttyACM0` and `--baud` to `115200`. Only one process can hold the port, so close
-`idf.py monitor` first. Stop with `Ctrl+C`.
+`idf.py monitor` first. Stop with `Ctrl+C`. Apps may add options of their own, which are
+described in their READMEs.
 
-## Apps
-
-| App | Needs | Setup |
-|---|---|---|
-| `ci` | `gh` CLI | `gh auth login`, then run from inside the repo to watch, or pass `--repo PATH` / set `CI_REPO_DIR` |
-| `cpu` | `[cpu]` extra | none |
-| `spotify` | `[spotify]` extra | a [Spotify developer app](https://developer.spotify.com/dashboard); `cp .env.example .env` and fill it in |
-
-`.env` is git-ignored. On first run Spotipy opens a browser to authorize; the token is
-cached in `.cache` (also git-ignored). If you hit HTTP 429s, raise `POLL_INTERVAL` in
-`dot_host/cli.py`.
+The host polls once a second (`POLL_INTERVAL` in `dot_host/cli.py`). An app that talks to a
+rate-limited service should throttle itself inside `poll()`.
 
 ## Writing an app
 
 Subclass `App` ([`dot_host/apps/base.py`](dot_host/apps/base.py)), add it to `_APPS` in
 [`dot_host/apps/__init__.py`](dot_host/apps/__init__.py), and write the matching
-firmware app. [`apps/cpu.py`](dot_host/apps/cpu.py) is the smallest example.
+firmware app. Any existing module in `dot_host/apps/` makes a good starting point.
 
 - `start()`: one-time setup.
 - `poll()`: returns the messages to send now: protocol lines (`str`) or binary payloads (`bytes`).
@@ -54,5 +46,6 @@ firmware app. [`apps/cpu.py`](dot_host/apps/cpu.py) is the smallest example.
 pip install -e ".[dev,cpu,spotify]"
 pytest
 ruff check . && ruff format .
-python scripts/fake_ci_status.py  # drive the CI orb with fake states, no CI needed
 ```
+
+Helper scripts live in `scripts/` and are described in the README of the app they serve.
