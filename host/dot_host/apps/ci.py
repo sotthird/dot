@@ -178,6 +178,11 @@ class CiApp(App):
 
         return CiStatus(state, repo, title, wf_branch, run_info(run.get("number"), detail))
 
+    def on_activate(self) -> None:
+        # Fetch at once and re-send even if unchanged: the device forgets while on standby.
+        self._last_fetch = 0.0
+        self._last_msg = None
+
     def poll(self) -> list[str | bytes]:
         now = time.monotonic()
         if now - self._last_fetch < FETCH_INTERVAL:

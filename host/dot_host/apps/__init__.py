@@ -7,7 +7,11 @@ from .base import App
 _APPS = {"ci": "CiApp", "cpu": "CpuApp", "spotify": "SpotifyApp"}
 APP_NAMES = tuple(_APPS)
 
-__all__ = ["APP_NAMES", "App", "create"]
+__all__ = ["APP_NAMES", "App", "AppUnavailable", "create"]
+
+
+class AppUnavailable(Exception):
+    """An app cannot be created, e.g. because its optional packages are not installed."""
 
 
 def create(name: str, **options) -> App:
@@ -16,7 +20,7 @@ def create(name: str, **options) -> App:
     try:
         module = import_module(f"{__name__}.{name}")
     except ImportError as e:
-        raise SystemExit(
+        raise AppUnavailable(
             f"The {name} app needs extra packages: pip install 'dot-host[{name}]'\n{e}"
         ) from e
     return getattr(module, _APPS[name])(**options)

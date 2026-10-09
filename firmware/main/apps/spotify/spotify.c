@@ -14,8 +14,8 @@ static struct {
     uint32_t color;
 } art;
 
-static void create_ui(void) {
-    spotify_ui_create(app_send_cmd);
+static void create_ui(lv_obj_t* screen) {
+    spotify_ui_create(screen, app_send_cmd);
 }
 
 static void parse(const char* line) {
@@ -64,6 +64,7 @@ static void update(void) {
 }
 
 const app_t spotify_app = {
+    .name = "spotify",
     .prefix = "SPOTIFY:",
     .create_ui = create_ui,
     .parse = parse,

@@ -5,8 +5,7 @@
 static lv_obj_t* cpu_arc;
 static lv_obj_t* cpu_pct_label;
 
-void cpu_ui_create(void) {
-    lv_obj_t* scr = lv_screen_active();
+void cpu_ui_create(lv_obj_t* scr) {
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x1a1a2e), 0);
 
     lv_obj_t* title = lv_label_create(scr);

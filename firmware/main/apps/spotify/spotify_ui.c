@@ -41,12 +41,10 @@ static lv_obj_t* make_ctrl_btn(lv_obj_t* parent, const char* symbol, const char*
     return lbl;
 }
 
-void spotify_ui_create(spotify_ui_cmd_cb_t on_cmd) {
+void spotify_ui_create(lv_obj_t* scr, spotify_ui_cmd_cb_t on_cmd) {
     s_cmd_cb = on_cmd;
 
-    lv_obj_t* scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x121212), 0);
-    lv_screen_load(scr);
 
     spotify_header = lv_label_create(scr);
     lv_label_set_text(spotify_header, "Now Playing");
@@ -141,7 +139,7 @@ void spotify_ui_update(const spotify_track_t* t) {
     }
 
     if (spotify_time_label) {
-        char cur[8], tot[8], buf[20];
+        char cur[16], tot[16], buf[40];
         ms_to_str(progress_ms, cur, sizeof(cur));
         ms_to_str(duration_ms, tot, sizeof(tot));
         snprintf(buf, sizeof(buf), "%s / %s", cur, tot);

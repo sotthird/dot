@@ -202,10 +202,27 @@ static void idle_dim_cb(lv_timer_t* timer) {
 }
 #endif
 
+static bool s_touch_irq;
+static volatile bool s_touch_event;
+
+void IRAM_ATTR board_touch_isr(esp_lcd_touch_handle_t touch) {
+    s_touch_event = true;
+}
+
 static void touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
+    static bool down;
     esp_lcd_touch_handle_t touch = lv_indev_get_user_data(indev);
     esp_lcd_touch_point_data_t point;
     uint8_t count = 0;
+
+    /* Each read is an I2C transaction: with nothing touching the screen, skip it until the
+     * controller signals. While a finger is down keep polling, since a held finger may not
+     * interrupt on every report. */
+    if (s_touch_irq && !down && !s_touch_event) {
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
+    }
+    s_touch_event = false;
 
     /* A failed read leaves the previous point behind in the driver, so treat it as released
      * rather than a finger stuck down. */
@@ -217,8 +234,10 @@ static void touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
         unrotate_point(&data->point.x, &data->point.y);
 #endif
         data->state = LV_INDEV_STATE_PRESSED;
+        down = true;
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
+        down = false;
     }
 }
 
@@ -236,6 +255,8 @@ void board_lvgl_init(const board_hw_t* hw) {
 
     if (hw->panel_io) {
         lv_display_set_flush_cb(disp, flush_qspi);
+        /* Animations step at the refresh rate; the default 33 ms caps them at 30 fps. */
+        lv_timer_set_period(lv_display_get_refr_timer(disp), 16);
         lv_display_add_event_cb(disp, round_area_to_even, LV_EVENT_INVALIDATE_AREA, NULL);
         const esp_lcd_panel_io_callbacks_t cbs = {.on_color_trans_done = qspi_transfer_done};
         ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(hw->panel_io, &cbs, disp));
@@ -255,6 +276,7 @@ void board_lvgl_init(const board_hw_t* hw) {
 
     /* A board without a working touch controller yet simply has no input device */
     if (hw->touch) {
+        s_touch_irq = hw->touch_irq;
         lv_indev_t* indev = lv_indev_create();
         lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
         lv_indev_set_display(indev, disp);

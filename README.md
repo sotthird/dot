@@ -19,9 +19,19 @@ Pins and per-board details: [`firmware/components/board`](firmware/components/bo
 
 ## Apps
 
-One app owns the screen at a time. Choose it in the firmware build (*Dot: App*) and run the same
-one on the host. Each app lives in `firmware/main/apps/<name>/` and has its own README: what it
-shows, its host setup, its messages and its touch actions.
+Swipe left or right to move between apps; the screen fades through black, and dots down the left
+edge show which one you are on. The AMOLED board also shows a status row at the bottom: USB cable, Wi-Fi, Bluetooth and the
+battery level (with a bolt and green text while charging). An icon is green when connected, amber
+while connecting or advertising, and grey when off.
+
+Wi-Fi and Bluetooth LE only connect and show their state for now; the host link is still the USB
+cable. Set the network under *Dot: Radios* in menuconfig (leave the name empty to keep Wi-Fi off).
+With PlatformIO, put `CONFIG_DOT_WIFI_SSID="..."` and `CONFIG_DOT_WIFI_PASSWORD="..."` in
+`firmware/boards/amoled_2_16.defaults`, and do not commit them. Bluetooth advertises as `dot`. Only the one on screen is running: the others are on
+standby, and the host only fetches data for the active one. Choose which apps are built in under
+*Dot: Apps* in menuconfig; they are shown in the order of `main/main.c`. Each app lives in
+`firmware/main/apps/<name>/` and has its own README: what it shows, its host setup, its messages
+and its touch actions.
 
 ## Quick start
 
@@ -31,17 +41,26 @@ v6.0 or newer, active in your shell.
 ```bash
 cd firmware
 idf.py set-target esp32s3                    # first time only
-idf.py menuconfig                            # Dot: Board picks the hardware, Dot: App the app
+idf.py menuconfig                            # Dot: Board picks the hardware, Dot: Apps the apps
 idf.py -p /dev/ttyACM0 build flash monitor   # exit the monitor with Ctrl-]
 ```
 
-**2. Run the host.** Set up the app's data source first, as described in its README.
+**PlatformIO instead of `idf.py`:** `firmware/platformio.ini` has an environment per board.
+
+```bash
+cd firmware
+pio run -e amoled_2_16 -t upload     # or -e lcd_2_1; pio device monitor
+```
+
+The board and its settings come from `firmware/boards/<env>.defaults`, on top of `sdkconfig.defaults`.
+
+**2. Run the host.** Set up each app's data source first, as described in its README.
 
 ```bash
 cd host
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[<app>]"                    # extras an app needs are in its README
-dot-host <app> --port /dev/ttyACM0
+dot-host --port /dev/ttyACM0                 # all installed apps, or name some: dot-host ci cpu
 ```
 
 Only one process can hold the serial port, so close the monitor before starting the host.
@@ -65,8 +84,11 @@ The two halves of an app share a **prefix** and speak newline-terminated text:
 | host → device | `<PREFIX>:<payload>` | app data. The format is the app's own. |
 | host → device | `IMG:<w>x<h>:<bytes>:<rrggbb>` then `<bytes>` of raw RGB565 | an image and an accent color |
 | device → host | `CMD:<name>` | a touch action, named by the app |
+| device → host | `APP:<name>` | the app now on screen, sent on every swipe |
+| host → device | `HELLO` | asks for an `APP:` line; the host sends it until answered |
 
-The firmware routes each line to the app whose `prefix` it starts with. `parse()` runs on the
+The firmware routes each line to the active app if it starts with that app's `prefix`, and drops
+the rest. The host polls only the app the device reports. `parse()` runs on the
 serial task and stashes the data under a lock; the UI task then calls `update()` to render it, so
 LVGL is only ever touched from one task. On the host, an app produces messages from `poll()` and
 handles commands in `on_command()`.
@@ -99,8 +121,10 @@ host/                        Python package `dot_host`
 ## Adding an app
 
 1. **Firmware:** create `firmware/main/apps/<name>/` with an `app_t` (copy an existing app as a
-   starting point). Add its sources to `main/CMakeLists.txt`, a choice to
-   `main/Kconfig.projbuild` and a branch to `main/main.c`.
+   starting point). Its `name` is the host's name for it. Add its sources to `main/CMakeLists.txt`,
+   an option to `main/Kconfig.projbuild` and an `app_register()` to `main/main.c`. Build the UI on
+   the screen passed to `create_ui()`, and if the app animates by itself, stop that in `suspend()`
+   and restart it in `resume()`.
 2. **Host:** add `dot_host/apps/<name>.py` with an `App` subclass and list it in
    `dot_host/apps/__init__.py` ([details](host/README.md#writing-an-app)).
 3. **Docs:** add a `README.md` next to the firmware app, following the existing ones: what it shows,
@@ -122,7 +146,10 @@ find firmware -name '*.[ch]' -not -path '*/build/*' -not -path '*/managed_compon
 
 - **Blank display:** watch `monitor` for errors during `board_init`. Check that *Dot: Board*
   matches your hardware.
-- **No data on screen:** the host must run the same app the firmware was built with, on the right port.
+- **No data on screen:** the host must run the app that is on screen (`dot-host` with no arguments
+  runs them all), on the right port.
+- **An app is missing from the swipe:** it is off in *Dot: Apps*. A `sdkconfig` made before apps
+  could be combined has them off; enable them in `idf.py menuconfig`.
 - **`Resource busy` on the port:** another process, often `idf.py monitor`, has it open.
 - **AMOLED picture sideways or mirrored, or touch off:** the scan direction is the `0x36` entry in
   `lcd_2_16/board_amoled_2_16.c` and the touch flags are in `touch_init()` there.

@@ -3,6 +3,8 @@
 The protocol is newline-terminated text. The host sends lines starting with an app's
 prefix (``CI:``, ``CPU:``, ``SPOTIFY:``) and binary image payloads announced by an
 ``IMG:`` header; the device answers with ``CMD:<name>`` lines when its UI is touched.
+The device also says which app is on screen with ``APP:<name>``, when the user swipes to
+another one and in reply to the host's ``HELLO``.
 """
 
 import threading
@@ -22,8 +24,9 @@ class SerialLink:
         self._ser.write(data.encode() if isinstance(data, str) else data)
         self._ser.flush()
 
-    def listen(self, on_command: Callable[[str], None]) -> None:
-        """Call on_command(name) from a background thread for every ``CMD:<name>`` line."""
+    def listen(self, on_command: Callable[[str], None], on_app: Callable[[str], None]) -> None:
+        """From a background thread, call on_command(name) for every ``CMD:<name>`` line and
+        on_app(name) for every ``APP:<name>`` line."""
 
         def reader() -> None:
             buf = b""
@@ -40,6 +43,8 @@ class SerialLink:
                     text = line.decode(errors="replace").strip()
                     if text.startswith("CMD:"):
                         on_command(text[4:])
+                    elif text.startswith("APP:"):
+                        on_app(text[4:])
 
         threading.Thread(target=reader, daemon=True).start()
 

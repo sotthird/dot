@@ -2,6 +2,8 @@ idf_component_register(
     SRCS
         "main.c"
         "app.c"
+        "radio.c"
+        "status_ui.c"
         "serial_link.c"
         "apps/ci/ci.c"
         "apps/ci/ci_ui.c"
@@ -12,6 +14,11 @@ idf_component_register(
     INCLUDE_DIRS "."
     PRIV_REQUIRES
         board
+        bt
         esp_driver_usb_serial_jtag
+        esp_event
+        esp_netif
+        esp_wifi
         heap
+        nvs_flash
 )

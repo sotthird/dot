@@ -9,8 +9,8 @@
 static ci_status_t status;
 static bool status_pending;
 
-static void create_ui(void) {
-    ci_ui_create(app_send_cmd);
+static void create_ui(lv_obj_t* screen) {
+    ci_ui_create(screen, app_send_cmd);
 }
 
 static ci_state_t state_from_str(const char* s) {
@@ -49,9 +49,20 @@ static void update(void) {
         ci_ui_update(&s);
 }
 
+static void suspend(void) {
+    ci_ui_suspend();
+}
+
+static void resume(void) {
+    ci_ui_resume();
+}
+
 const app_t ci_app = {
+    .name = "ci",
     .prefix = "CI:",
     .create_ui = create_ui,
     .parse = parse,
     .update = update,
+    .suspend = suspend,
+    .resume = resume,
 };
