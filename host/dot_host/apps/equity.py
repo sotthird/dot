@@ -21,7 +21,6 @@ REQUEST_TIMEOUT = 10
 STALE_AFTER_S = 15 * 60
 AED_PER_USD_FALLBACK = Decimal("3.6725")
 TOP_COUNT = 3
-DEBUG_NUDGE = Decimal("0.5")  # percentage points added to the total return while testing
 SYMBOL_MAX = 11  # the device keeps 11 characters
 
 
@@ -49,14 +48,11 @@ def price_age_s(prices_as_of: str | None, now: datetime) -> int | None:
     return max(0, int((now - as_of).total_seconds()))
 
 
-def summary_message(portfolio: dict, now: datetime, nudge: Decimal = Decimal(0)) -> str:
-    """``EQ:S|<state>|<total %>|<unrealized %>|<positions>|<age s>`` from a /api/portfolio body.
-
-    ``nudge`` shifts the total return; it is only used to test the update flash on the device.
-    """
+def summary_message(portfolio: dict, now: datetime) -> str:
+    """``EQ:S|<state>|<total %>|<unrealized %>|<positions>|<age s>`` from a /api/portfolio body."""
     totals = portfolio.get("totals", {})
     cost = _dec(totals.get("cost_basis"))
-    total_pct = percent(_dec(totals.get("total_gain")), cost) + nudge
+    total_pct = percent(_dec(totals.get("total_gain")), cost)
     unrealized_pct = _dec(totals.get("unrealized_gain_pct"))
     positions = portfolio.get("positions", [])
     age = price_age_s(portfolio.get("prices_as_of"), now)
@@ -115,24 +111,12 @@ class EquityApp(App):
         self._last_fetch = 0.0
         self._portfolio: dict | None = None
         self._reveal = False
-        self._debug_every = 0.0  # seconds between fake changes; 0 is off
-        self._last_debug = 0.0
-        self._nudge = Decimal(0)
 
     def start(self) -> None:
         load_dotenv()  # EQUITYWATCH_URL / _USER / _PASSWORD, from host/.env
         self._url = os.getenv("EQUITYWATCH_URL", "http://localhost").rstrip("/")
         self._username = os.getenv("EQUITYWATCH_USER", "")
         self._password = os.getenv("EQUITYWATCH_PASSWORD", "")
-        try:
-            self._debug_every = float(os.getenv("EQUITYWATCH_DEBUG_FLASH", "0") or 0)
-        except ValueError:
-            self._debug_every = 0.0
-        if self._debug_every > 0:
-            print(
-                f"EquityWatch: DEBUG, the return is nudged by {DEBUG_NUDGE} points every "
-                f"{self._debug_every:g} s to test the update flash. Unset EQUITYWATCH_DEBUG_FLASH."
-            )
         if not (self._username and self._password):
             print("EquityWatch: set EQUITYWATCH_USER and EQUITYWATCH_PASSWORD in host/.env")
 
@@ -174,36 +158,19 @@ class EquityApp(App):
             print(">>> Command: eq_reveal")
             self._reveal = True
 
-    def _debug_step(self, now: float) -> bool:
-        """Alternate the nudge on and off so the device sees the return rise, then fall."""
-        if (
-            self._debug_every <= 0
-            or self._portfolio is None
-            or now - self._last_debug < self._debug_every
-        ):
-            return False
-        self._last_debug = now
-        self._nudge = DEBUG_NUDGE if self._nudge == 0 else Decimal(0)
-        return True
-
     def poll(self) -> list[str | bytes]:
         messages: list[str | bytes] = []
         now = time.monotonic()
-        send_summary = False
         if now - self._last_fetch >= FETCH_INTERVAL:
             self._last_fetch = now
             result = self._fetch()
-            if result == "ok":
-                send_summary = True
+            if result == "ok" and self._portfolio is not None:
+                msg = summary_message(self._portfolio, datetime.now(UTC))
+                print(f"EquityWatch: {msg.strip().removeprefix('EQ:S|')}")
+                messages.append(msg)
+                messages.append(top_message(self._portfolio))
             else:
                 messages.append(status_message(result))
-        if self._debug_step(now):
-            send_summary = True
-        if send_summary and self._portfolio is not None:
-            msg = summary_message(self._portfolio, datetime.now(UTC), self._nudge)
-            print(f"EquityWatch: {msg.strip().removeprefix('EQ:S|')}")
-            messages.append(msg)
-            messages.append(top_message(self._portfolio))
         if self._reveal and self._portfolio is not None:
             self._reveal = False
             messages.append(amounts_message(self._portfolio))

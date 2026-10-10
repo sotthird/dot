@@ -1,7 +1,6 @@
 """The host half of the serial protocol: what each app puts on the wire."""
 
 from datetime import UTC, datetime
-from decimal import Decimal
 
 import requests
 
@@ -203,34 +202,3 @@ def test_equity_top_symbols_are_safe_for_the_protocol():
     portfolio = positions(("A|B", "1"), ("GOLD-22K", "2"), ("VERYLONGSYMBOLNAME", "0"))
     msg = equity.top_message(portfolio)
     assert msg == "EQ:T|GOLD-22K|2.00|A B|1.00|VERYLONGSYM|0.00\n"
-
-
-def test_equity_summary_nudge_shifts_only_the_total_return():
-    nudged = equity.summary_message(PORTFOLIO, NOW, Decimal("0.5"))
-    assert nudged == "EQ:S|ok|25.50|25.00|3|120\n"
-
-
-def test_equity_debug_flash_alternates_up_and_down(monkeypatch):
-    clock = {"now": 1000.0}
-    monkeypatch.setattr(equity.time, "monotonic", lambda: clock["now"])
-    app = make_equity_app(FakeSession())
-    app._debug_every = 8.0
-
-    def total_pcts():
-        messages = [m for m in app.poll() if m.startswith("EQ:S|")]
-        return [m.split("|")[2] for m in messages]
-
-    assert total_pcts() == ["25.50"]  # first fetch, already nudged up
-    clock["now"] += 3
-    assert total_pcts() == []  # nothing due yet
-    clock["now"] += 6
-    assert total_pcts() == ["25.00"]  # falls back: the device flashes red
-    clock["now"] += 8
-    assert total_pcts() == ["25.50"]  # rises: green
-
-
-def test_equity_debug_flash_is_off_by_default():
-    app = make_equity_app(FakeSession())
-    summary = next(m for m in app.poll() if m.startswith("EQ:S|"))
-    assert summary.split("|")[2] == "25.00"  # not nudged
-    assert app._debug_every == 0 and app._nudge == 0

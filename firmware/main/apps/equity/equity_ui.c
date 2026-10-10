@@ -1,6 +1,5 @@
 #include "equity_ui.h"
 
-#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -48,15 +47,6 @@ static const char* TAG = "equity";
 #define BACK_FADE_MS 350
 #define BACK_SWAP_AT 450
 
-/* A border flashes round the screen when the return changes: green up, red down. */
-#define BORDER_PX 6
-/* The panel's corners are rounded; the border follows them. If its corners are cut off, raise the
- * radius; if there is a gap at the corners, lower it. */
-#define BORDER_RADIUS 56
-#define BORDER_IN_MS 200
-#define BORDER_HOLD_MS 700
-#define BORDER_OUT_MS 1400
-
 /* A fade has 255 levels but the eye sees about twenty, and every change is a redraw. */
 #define FADE_STEP 12
 
@@ -72,11 +62,6 @@ static equity_ui_cmd_cb_t cmd_cb;
 
 static bool ambient;
 
-static lv_obj_t* border;
-static int32_t border_shade = 255; /* 0 fully shown, 255 blended into the background */
-static uint32_t border_color = COLOR_GAIN;
-static float last_total_pct;
-static bool have_last_total;
 static bool revealing; /* the AED amounts are replacing the details under the percentage */
 
 /* What the two small lines and the status line say in each mode, and their colours. */
@@ -207,32 +192,6 @@ static void animate(void* obj, lv_anim_exec_xcb_t cb, int32_t from, int32_t to, 
     lv_anim_start(&a);
 }
 
-static void border_fade_cb(void* var, int32_t v) {
-    v = snap(v);
-    if (v == border_shade)
-        return;
-    border_shade = v;
-    lv_obj_set_style_border_color(border, mix_bg(border_color, v), 0);
-}
-
-static void border_hold_cb(lv_anim_t* a) {
-    animate(&border_shade, border_fade_cb, 0, 255, BORDER_OUT_MS, BORDER_HOLD_MS,
-            lv_anim_path_ease_in_out, NULL);
-}
-
-static void flash_border(bool up) {
-    border_color = up ? COLOR_GAIN : COLOR_LOSS;
-    border_shade = -1; /* repaint with the new colour */
-    animate(&border_shade, border_fade_cb, 255, 0, BORDER_IN_MS, 0, lv_anim_path_ease_out,
-            border_hold_cb);
-}
-
-static void clear_border(void) {
-    lv_anim_delete(&border_shade, border_fade_cb);
-    border_shade = -1;
-    border_fade_cb(NULL, 255);
-}
-
 /* Put the right words, sizes and colours on the two small lines and the status line for the
  * current mode: the usual details, or the AED amounts after a tap. Call it while they are faded
  * out, or when nothing is animating. */
@@ -348,16 +307,6 @@ void equity_ui_create(lv_obj_t* scr, equity_ui_cmd_cb_t on_cmd) {
         lv_obj_add_flag(top_rows[i], LV_OBJ_FLAG_HIDDEN);
     }
 
-    border = lv_obj_create(scr);
-    lv_obj_remove_style_all(border);
-    lv_obj_remove_flag(border, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_size(border, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_style_radius(border, BORDER_RADIUS, 0);
-    lv_obj_set_style_border_width(border, BORDER_PX, 0);
-    lv_obj_set_style_border_opa(border, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_color(border, lv_color_hex(COLOR_BG), 0);
-    lv_obj_align(border, LV_ALIGN_CENTER, 0, 0);
-
     status_label = make_label(scr, "Waiting for the host...", COLOR_NEUTRAL);
     lv_obj_align(status_label, LV_ALIGN_BOTTOM_MID, 0, -64);
 
@@ -372,7 +321,6 @@ static void reset_view(void) {
         hide_timer = NULL;
     }
     revealing = false;
-    clear_border();
     set_ambient(false, false);
 }
 
@@ -444,13 +392,6 @@ void equity_ui_update(const equity_summary_t* s) {
     /* Offline or refused: keep showing the last numbers, only the status line changes. */
     if (s->state == EQUITY_OFFLINE || s->state == EQUITY_AUTH)
         return;
-
-    /* Compare at the precision shown, so a change you cannot see does not flash. */
-    const float shown = roundf(s->total_pct * 100.0f) / 100.0f;
-    if (have_last_total && shown != last_total_pct)
-        flash_border(shown > last_total_pct);
-    last_total_pct = shown;
-    have_last_total = true;
 
     const bool up = s->total_pct >= 0;
     const uint32_t color = s->total_pct == 0 ? COLOR_NEUTRAL : up ? COLOR_GAIN : COLOR_LOSS;

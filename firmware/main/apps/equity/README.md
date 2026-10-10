@@ -9,11 +9,6 @@ the figures glide up and the lines under the percentage change to a larger size.
 performing holdings (by unrealized return, symbol and percentage) then fade in below them.
 Everything eases back on the next touch. It only runs while this app is on screen.
 
-**Update flash:** when new prices change the total return (at the precision shown), a border
-flashes round the screen: green if it went up, red if it went down. It fades in quickly, holds for
-under a second and fades away. Nothing flashes for an unchanged figure, for the first reading after
-you open the app, or when only the status line changes.
-
 **Touch:** tap the screen to show the portfolio value and total gain in AED for 5 seconds. They
 replace the details under the percentage (and the status line, which goes blank), so nothing is
 added to the screen; the details fade back afterwards. The amounts are never sent to the device
@@ -51,13 +46,6 @@ address); it defaults to `http://localhost`. If EquityWatch serves plain HTTP, i
 
 The password stays on the host. Amounts are the API's USD totals converted to AED at the rate the
 API returns (the fixed 3.6725 peg).
-
-### Testing the update flash
-
-Set `EQUITYWATCH_DEBUG_FLASH=8` in `host/.env` (or the environment) and restart `dot-host`. Every 8
-seconds the host then nudges the total return it sends by 0.5 points, up and then back down, so the
-border flashes green, red, green, red... without waiting for prices to move. The log says when it is
-on. The real figures are unchanged; remove the setting when you are done.
 
 ## Protocol
 
