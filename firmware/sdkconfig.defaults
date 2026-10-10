@@ -11,7 +11,11 @@ CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
 CONFIG_SPIRAM_RODATA=y
 
 # LVGL
+CONFIG_LV_FONT_MONTSERRAT_16=y
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_24=y
 CONFIG_LV_FONT_MONTSERRAT_48=y
+CONFIG_LV_FONT_DEFAULT_MONTSERRAT_16=y
 
 # Speed. LVGL draws in software and its code and data run through the caches, so the clock, the
 # optimization level and the data cache set how fast a screen redraws. Leave the instruction

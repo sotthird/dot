@@ -20,18 +20,26 @@ Pins and per-board details: [`firmware/components/board`](firmware/components/bo
 ## Apps
 
 Swipe left or right to move between apps; the screen fades through black, and dots down the left
-edge show which one you are on. The AMOLED board also shows a status row at the bottom: USB cable, Wi-Fi, Bluetooth and the
+edge show which one you are on. Only the one on screen is running: the others are on standby, and
+the host only fetches data for the active one. Choose which apps are built in under *Dot: Apps* in
+menuconfig; they are shown in the order of `main/main.c`. Each app lives in
+`firmware/main/apps/<name>/` and has its own README: what it shows, its host setup, its messages
+and its touch actions.
+
+Apps: `spotify` (now playing) and `equity` (EquityWatch portfolio return), both on by default, and
+`ci` (GitHub Actions status) and `cpu` (host CPU gauge), which are off by default: turn them on under
+*Dot: Apps* in menuconfig.
+
+### Status row (AMOLED)
+
+The AMOLED board shows a row at the bottom of every screen: USB cable, Wi-Fi, Bluetooth and the
 battery level (with a bolt and green text while charging). An icon is green when connected, amber
 while connecting or advertising, and grey when off.
 
 Wi-Fi and Bluetooth LE only connect and show their state for now; the host link is still the USB
 cable. Set the network under *Dot: Radios* in menuconfig (leave the name empty to keep Wi-Fi off).
 With PlatformIO, put `CONFIG_DOT_WIFI_SSID="..."` and `CONFIG_DOT_WIFI_PASSWORD="..."` in
-`firmware/boards/amoled_2_16.defaults`, and do not commit them. Bluetooth advertises as `dot`. Only the one on screen is running: the others are on
-standby, and the host only fetches data for the active one. Choose which apps are built in under
-*Dot: Apps* in menuconfig; they are shown in the order of `main/main.c`. Each app lives in
-`firmware/main/apps/<name>/` and has its own README: what it shows, its host setup, its messages
-and its touch actions.
+`firmware/boards/amoled_2_16.defaults`, and do not commit them. Bluetooth advertises as `dot`.
 
 ## Quick start
 

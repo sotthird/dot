@@ -4,7 +4,7 @@ menu "Dot: Apps"
 
     config DOT_APP_CI
         bool "CI status orb"
-        default y
+        default n
 
     config DOT_APP_SPOTIFY
         bool "Spotify now playing"
@@ -12,6 +12,10 @@ menu "Dot: Apps"
 
     config DOT_APP_CPU
         bool "CPU gauge"
+        default n
+
+    config DOT_APP_EQUITY
+        bool "EquityWatch portfolio"
         default y
 
 endmenu

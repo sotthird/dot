@@ -9,6 +9,8 @@ idf_component_register(
         "apps/ci/ci_ui.c"
         "apps/cpu/cpu.c"
         "apps/cpu/cpu_ui.c"
+        "apps/equity/equity.c"
+        "apps/equity/equity_ui.c"
         "apps/spotify/spotify.c"
         "apps/spotify/spotify_ui.c"
     INCLUDE_DIRS "."

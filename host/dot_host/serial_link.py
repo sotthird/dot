@@ -1,7 +1,7 @@
 """USB serial link to the device.
 
 The protocol is newline-terminated text. The host sends lines starting with an app's
-prefix (``CI:``, ``CPU:``, ``SPOTIFY:``) and binary image payloads announced by an
+prefix (``CI:``, ``CPU:``, ``EQ:``, ``SPOTIFY:``) and binary image payloads announced by an
 ``IMG:`` header; the device answers with ``CMD:<name>`` lines when its UI is touched.
 The device also says which app is on screen with ``APP:<name>``, when the user swipes to
 another one and in reply to the host's ``HELLO``.

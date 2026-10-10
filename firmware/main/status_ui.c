@@ -78,7 +78,7 @@ void status_ui_start(void) {
     lv_obj_set_size(row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(row, 14, 0);
+    lv_obj_set_style_pad_column(row, 12, 0);
     lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, -14);
 
     usb_icon = make_icon(row, LV_SYMBOL_USB);

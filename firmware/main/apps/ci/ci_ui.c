@@ -211,6 +211,9 @@ void ci_ui_create(lv_obj_t* scr, ci_ui_cmd_cb_t on_cmd) {
 
     ci_sub_label = lv_label_create(ci_center);
     lv_label_set_text(ci_sub_label, "");
+    lv_label_set_long_mode(ci_sub_label, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(ci_sub_label, CI_CENTER_SIZE - 30);
+    lv_obj_set_style_text_align(ci_sub_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(ci_sub_label, lv_color_hex(0xEAEAEA), 0);
 
     ci_title_label = lv_label_create(scr);

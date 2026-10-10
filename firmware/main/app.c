@@ -163,6 +163,8 @@ void app_create_uis(void) {
         screens[i] = screen;
         if (apps[i]->create_ui)
             apps[i]->create_ui(screen);
+        if (i > 0 && apps[i]->suspend)
+            apps[i]->suspend(); /* only the first app starts on screen */
         if (app_count > 1)
             create_page_dots(screen, i);
     }

@@ -20,6 +20,7 @@ source.
 ```bash
 dot-host                          # every app whose extras are installed
 dot-host ci cpu                   # or just these; python -m dot_host works too
+
 dot-host --port /dev/ttyACM1
 ```
 
@@ -46,7 +47,7 @@ firmware app. Any existing module in `dot_host/apps/` makes a good starting poin
 ## Development
 
 ```bash
-pip install -e ".[dev,cpu,spotify]"
+pip install -e ".[dev,cpu,equity,spotify]"
 pytest
 ruff check . && ruff format .
 ```

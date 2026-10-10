@@ -1,6 +1,7 @@
 #include "app.h"
 #include "apps/ci/ci.h"
 #include "apps/cpu/cpu.h"
+#include "apps/equity/equity.h"
 #include "apps/spotify/spotify.h"
 #include "board.h"
 #include "freertos/FreeRTOS.h"
@@ -41,6 +42,9 @@ void app_main(void) {
 #endif
 #if CONFIG_DOT_APP_CPU
     app_register(&cpu_app);
+#endif
+#if CONFIG_DOT_APP_EQUITY
+    app_register(&equity_app);
 #endif
     app_create_uis();
 #if CONFIG_DOT_BOARD_AMOLED_2_16
