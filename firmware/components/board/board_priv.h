@@ -46,6 +46,10 @@ typedef struct {
 /* Interrupt callback a board gives its touch controller to use hw->touch_irq. */
 void board_touch_isr(esp_lcd_touch_handle_t touch);
 
+/* Implemented by each board: write the brightness to the hardware. Everything else goes through
+ * board_set_brightness() / board_fade_brightness(), which keep track of what is shown. */
+void board_hw_set_brightness(uint8_t percent);
+
 /* Implemented by each board: reset and configure the panel and touch controller. */
 void board_hw_init(board_hw_t* hw);
 

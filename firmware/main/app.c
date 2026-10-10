@@ -68,12 +68,12 @@ static unsigned fade_step;
 
 static void fade_cb(lv_timer_t* timer) {
     if (fade_step < FADE_OUT_STEPS) {
-        board_set_brightness(BOARD_DEFAULT_BRIGHTNESS * fade_out_pct[fade_step] / 100);
+        board_set_brightness(board_user_brightness() * fade_out_pct[fade_step] / 100);
     } else {
         unsigned i = fade_step - FADE_OUT_STEPS;
         if (i == 0)
             lv_screen_load(screens[active]);
-        board_set_brightness(BOARD_DEFAULT_BRIGHTNESS * fade_in_pct[i] / 100);
+        board_set_brightness(board_user_brightness() * fade_in_pct[i] / 100);
         if (i + 1 == FADE_IN_STEPS) {
             lv_timer_delete(timer);
             fade_timer = NULL;

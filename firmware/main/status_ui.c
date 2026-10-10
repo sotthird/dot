@@ -15,6 +15,7 @@
 #define COLOR_OK 0x2ECC71
 #define COLOR_NORMAL 0xB0B0B0
 #define COLOR_LOW 0xE74C3C
+#define COLOR_BG 0x121212 /* the apps' background, which the row fades into */
 
 static lv_obj_t* usb_icon;
 static lv_obj_t* wifi_icon;
@@ -33,17 +34,72 @@ static const char* battery_symbol(int percent) {
     return LV_SYMBOL_BATTERY_EMPTY;
 }
 
+/* Each icon remembers the colour it should have, so the whole row can fade without losing it.
+ * `fade` is 0 when shown and 255 when blended completely into the background. */
+#define ITEM_COUNT 4
+static struct {
+    lv_obj_t* obj;
+    uint32_t color;
+} items[ITEM_COUNT];
+static int32_t fade;
+
+static void paint(unsigned i) {
+    lv_obj_set_style_text_color(
+        items[i].obj,
+        lv_color_mix(lv_color_hex(COLOR_BG), lv_color_hex(items[i].color), (uint8_t)fade), 0);
+}
+
 static void set_color(lv_obj_t* obj, uint32_t color) {
-    lv_obj_set_style_text_color(obj, lv_color_hex(color), 0);
+    for (unsigned i = 0; i < ITEM_COUNT; i++) {
+        if (items[i].obj == obj) {
+            items[i].color = color;
+            paint(i);
+            return;
+        }
+    }
+}
+
+/* The eye sees about twenty shades; each change is a redraw of four icons. */
+#define FADE_STEP 12
+
+static void fade_cb(void* var, int32_t v) {
+    v = v >= 255 - FADE_STEP / 2 ? 255 : v / FADE_STEP * FADE_STEP;
+    if (v == fade)
+        return;
+    fade = v;
+    for (unsigned i = 0; i < ITEM_COUNT; i++)
+        if (items[i].obj)
+            paint(i);
+}
+
+void status_ui_set_hidden(bool hidden, uint32_t ms, uint32_t delay_ms) {
+    if (!items[0].obj)
+        return; /* no status row on this board */
+    lv_anim_delete(&fade, fade_cb);
+    if (ms == 0) {
+        fade = -1; /* force the repaint */
+        fade_cb(NULL, hidden ? 255 : 0);
+        return;
+    }
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, &fade);
+    lv_anim_set_exec_cb(&a, fade_cb);
+    lv_anim_set_values(&a, fade, hidden ? 255 : 0);
+    lv_anim_set_duration(&a, ms);
+    lv_anim_set_delay(&a, delay_ms);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+    lv_anim_start(&a);
 }
 
 static uint32_t radio_color(radio_state_t state) {
     return state == RADIO_CONNECTED ? COLOR_OK : state == RADIO_WORKING ? COLOR_WORKING : COLOR_OFF;
 }
 
-static lv_obj_t* make_icon(lv_obj_t* row, const char* symbol) {
+static lv_obj_t* make_icon(lv_obj_t* row, unsigned index, const char* symbol) {
     lv_obj_t* label = lv_label_create(row);
     lv_label_set_text(label, symbol);
+    items[index].obj = label;
     set_color(label, COLOR_OFF);
     return label;
 }
@@ -81,10 +137,10 @@ void status_ui_start(void) {
     lv_obj_set_style_pad_column(row, 12, 0);
     lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, -14);
 
-    usb_icon = make_icon(row, LV_SYMBOL_USB);
-    wifi_icon = make_icon(row, LV_SYMBOL_WIFI);
-    ble_icon = make_icon(row, LV_SYMBOL_BLUETOOTH);
-    battery_label = make_icon(row, "");
+    usb_icon = make_icon(row, 0, LV_SYMBOL_USB);
+    wifi_icon = make_icon(row, 1, LV_SYMBOL_WIFI);
+    ble_icon = make_icon(row, 2, LV_SYMBOL_BLUETOOTH);
+    battery_label = make_icon(row, 3, "");
 
     poll_cb(NULL);
     lv_timer_create(poll_cb, POLL_MS, NULL);

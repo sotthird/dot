@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "main.c"
         "app.c"
+        "brightness.c"
         "radio.c"
         "status_ui.c"
         "serial_link.c"

@@ -4,6 +4,7 @@
 #include "apps/equity/equity.h"
 #include "apps/spotify/spotify.h"
 #include "board.h"
+#include "brightness.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
@@ -49,6 +50,7 @@ void app_main(void) {
     app_create_uis();
 #if CONFIG_DOT_BOARD_AMOLED_2_16
     status_ui_start();
+    brightness_start();
     radio_start();
 #endif
 

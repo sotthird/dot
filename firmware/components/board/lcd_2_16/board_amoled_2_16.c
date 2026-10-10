@@ -85,7 +85,7 @@ static esp_lcd_panel_io_handle_t panel_init(void) {
     return io;
 }
 
-void board_set_brightness(uint8_t percent) {
+void board_hw_set_brightness(uint8_t percent) {
     if (!s_panel)
         return;
     if (percent > 100)
@@ -137,6 +137,11 @@ static esp_err_t read_accel_xy(float* ax, float* ay) {
 
 bool board_battery_read(int* percent, bool* charging, bool* usb_power) {
     return s_have_pmu && axp2101_read(percent, charging, usb_power) == ESP_OK;
+}
+
+bool board_power_button_pressed(void) {
+    bool pressed = false;
+    return s_have_pmu && axp2101_power_key_pressed(&pressed) == ESP_OK && pressed;
 }
 
 void board_hw_init(board_hw_t* hw) {

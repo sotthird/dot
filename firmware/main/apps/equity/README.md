@@ -4,12 +4,20 @@ Your EquityWatch portfolio as one number: the total return, large, with an
 arrow and green or red. Below it are the unrealized return, the number of positions and how old the
 prices are.
 
-**Idle:** after 20 seconds without a touch the title fades away, the figures glide slightly toward
-the centre and the lines under the percentage change to a larger size; everything eases back on the
-next touch. It only runs while this app is on screen.
+**Idle:** after 20 seconds without a touch the title and the status row at the bottom fade away,
+the figures glide up and the lines under the percentage change to a larger size. Your three best
+performing holdings (by unrealized return, symbol and percentage) then fade in below them.
+Everything eases back on the next touch. It only runs while this app is on screen.
 
-**Touch:** tap the screen to show the portfolio value and total gain in AED for 5 seconds. The
-amounts are never sent to the device until you tap: the host only sends percentages.
+**Update flash:** when new prices change the total return (at the precision shown), a border
+flashes round the screen: green if it went up, red if it went down. It fades in quickly, holds for
+under a second and fades away. Nothing flashes for an unchanged figure, for the first reading after
+you open the app, or when only the status line changes.
+
+**Touch:** tap the screen to show the portfolio value and total gain in AED for 5 seconds. They
+replace the details under the percentage (and the status line, which goes blank), so nothing is
+added to the screen; the details fade back afterwards. The amounts are never sent to the device
+until you tap: the host only sends percentages.
 
 | Status line | Meaning |
 |---|---|
@@ -44,16 +52,25 @@ address); it defaults to `http://localhost`. If EquityWatch serves plain HTTP, i
 The password stays on the host. Amounts are the API's USD totals converted to AED at the rate the
 API returns (the fixed 3.6725 peg).
 
+### Testing the update flash
+
+Set `EQUITYWATCH_DEBUG_FLASH=8` in `host/.env` (or the environment) and restart `dot-host`. Every 8
+seconds the host then nudges the total return it sends by 0.5 points, up and then back down, so the
+border flashes green, red, green, red... without waiting for prices to move. The log says when it is
+on. The real figures are unchanged; remove the setting when you are done.
+
 ## Protocol
 
 ```
 EQ:S|<state>|<total %>|<unrealized %>|<positions>|<age seconds>
 EQ:V|<value>|<gain>|<currency>
+EQ:T|<symbol>|<percent>|<symbol>|<percent>|<symbol>|<percent>
 ```
 
 `S` is the summary, sent every poll. `state` is `ok`, `stale`, `offline` or `auth`; for the last two
 the numbers are zero and the device keeps its old ones. `total %` is total gain (realized and
-unrealized) over cost; `age` is the age of the oldest price, or `-1` if unknown. `V` carries the
+unrealized) over cost; `age` is the age of the oldest price, or `-1` if unknown. `T` lists up to three holdings by unrealized return, best first, in the same cycle as `S`; a bare
+`EQ:T` clears the list. `V` carries the
 amounts as text (`EQ:V|3,673|+735|AED`) and is sent only after the device sends
 `CMD:eq_reveal`, within about a second.
 

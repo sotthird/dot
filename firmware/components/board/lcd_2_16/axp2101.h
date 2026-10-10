@@ -10,4 +10,7 @@
 esp_err_t axp2101_init(i2c_master_bus_handle_t bus);
 
 /* percent is -1 when no battery is connected. */
+/* True once per short press of the PWR key, then cleared. */
+esp_err_t axp2101_power_key_pressed(bool* pressed);
+
 esp_err_t axp2101_read(int* percent, bool* charging, bool* usb_power);

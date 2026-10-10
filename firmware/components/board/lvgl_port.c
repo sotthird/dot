@@ -107,7 +107,7 @@ static void brightness_ramp(uint8_t* step, uint8_t* wait) {
         (*wait)--;
         return;
     }
-    board_set_brightness(BOARD_DEFAULT_BRIGHTNESS * pct[*step] / 100);
+    board_set_brightness(board_user_brightness() * pct[*step] / 100);
     (*step)++;
 }
 
@@ -198,7 +198,8 @@ static void idle_dim_cb(lv_timer_t* timer) {
     if (idle == dimmed)
         return;
     dimmed = idle;
-    board_set_brightness(idle ? CONFIG_DOT_IDLE_DIM_PERCENT : BOARD_DEFAULT_BRIGHTNESS);
+    board_fade_brightness(idle ? CONFIG_DOT_IDLE_DIM_PERCENT : board_user_brightness(),
+                          idle ? 1500 : 400);
 }
 #endif
 

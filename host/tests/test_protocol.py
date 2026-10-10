@@ -1,6 +1,7 @@
 """The host half of the serial protocol: what each app puts on the wire."""
 
 from datetime import UTC, datetime
+from decimal import Decimal
 
 import requests
 
@@ -139,7 +140,8 @@ def test_equity_poll_sends_the_summary_and_signs_in_once():
     session = FakeSession()
     app = make_equity_app(session)
     messages = app.poll()
-    assert len(messages) == 1 and messages[0].startswith("EQ:S|")
+    assert len(messages) == 2
+    assert messages[0].startswith("EQ:S|") and messages[1].startswith("EQ:T")
     assert session.logins == 1
 
 
@@ -165,7 +167,70 @@ def test_equity_reports_an_unreachable_server():
 
 def test_equity_amounts_only_follow_a_tap():
     app = make_equity_app(FakeSession())
-    assert len(app.poll()) == 1  # the summary, no amounts
+    assert not any(m.startswith("EQ:V") for m in app.poll())  # no amounts yet
     app.on_command("eq_reveal")
     assert app.poll() == ["EQ:V|3,673|+735|AED\n"]
     assert app.poll() == []
+
+
+def positions(*pairs):
+    return {"positions": [{"symbol": s, "unrealized_gain_pct": p} for s, p in pairs]}
+
+
+def test_equity_top_three_best_first():
+    portfolio = positions(
+        ("AAA", "5"), ("BBB", "30.126"), ("CCC", "-4"), ("DDD", "12"), ("EEE", "1")
+    )
+    assert equity.top_message(portfolio) == "EQ:T|BBB|30.13|DDD|12.00|AAA|5.00\n"
+
+
+def test_equity_top_includes_losers_when_few_holdings():
+    portfolio = positions(("AAA", "-2.5"), ("BBB", "-9"))
+    assert equity.top_message(portfolio) == "EQ:T|AAA|-2.50|BBB|-9.00\n"
+
+
+def test_equity_top_skips_unpriced_holdings():
+    portfolio = positions(("AAA", None), ("BBB", "3"))
+    assert equity.top_message(portfolio) == "EQ:T|BBB|3.00\n"
+
+
+def test_equity_top_with_nothing_clears_the_list():
+    assert equity.top_message({"positions": []}) == "EQ:T\n"
+    assert equity.top_message(positions(("AAA", None))) == "EQ:T\n"
+
+
+def test_equity_top_symbols_are_safe_for_the_protocol():
+    portfolio = positions(("A|B", "1"), ("GOLD-22K", "2"), ("VERYLONGSYMBOLNAME", "0"))
+    msg = equity.top_message(portfolio)
+    assert msg == "EQ:T|GOLD-22K|2.00|A B|1.00|VERYLONGSYM|0.00\n"
+
+
+def test_equity_summary_nudge_shifts_only_the_total_return():
+    nudged = equity.summary_message(PORTFOLIO, NOW, Decimal("0.5"))
+    assert nudged == "EQ:S|ok|25.50|25.00|3|120\n"
+
+
+def test_equity_debug_flash_alternates_up_and_down(monkeypatch):
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(equity.time, "monotonic", lambda: clock["now"])
+    app = make_equity_app(FakeSession())
+    app._debug_every = 8.0
+
+    def total_pcts():
+        messages = [m for m in app.poll() if m.startswith("EQ:S|")]
+        return [m.split("|")[2] for m in messages]
+
+    assert total_pcts() == ["25.50"]  # first fetch, already nudged up
+    clock["now"] += 3
+    assert total_pcts() == []  # nothing due yet
+    clock["now"] += 6
+    assert total_pcts() == ["25.00"]  # falls back: the device flashes red
+    clock["now"] += 8
+    assert total_pcts() == ["25.50"]  # rises: green
+
+
+def test_equity_debug_flash_is_off_by_default():
+    app = make_equity_app(FakeSession())
+    summary = next(m for m in app.poll() if m.startswith("EQ:S|"))
+    assert summary.split("|")[2] == "25.00"  # not nudged
+    assert app._debug_every == 0 and app._nudge == 0

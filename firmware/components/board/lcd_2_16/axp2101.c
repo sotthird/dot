@@ -11,6 +11,8 @@ static const char* TAG = "axp2101";
 #define REG_STATUS1 0x00 /* bit 3: battery connected, bit 5: USB power good */
 #define REG_STATUS2 0x01 /* bits 7:5: charger state */
 #define REG_ADC_CHANNEL_CTRL 0x30
+#define REG_INT_ENABLE2 0x41
+#define REG_INT_STATUS2 0x49 /* bit 3: PWR key short press; write 1 to clear */
 #define REG_BAT_DET_CTRL 0x68
 #define REG_BAT_PERCENT 0xA4
 
@@ -20,11 +22,17 @@ static const char* TAG = "axp2101";
 #define CHARGER_CHARGING 0x01
 #define ADC_BATTERY_VOLTAGE (1 << 0)
 #define BAT_DETECT_EN (1 << 0)
+#define INT2_PKEY_SHORT (1 << 3)
 
 static i2c_master_dev_handle_t s_dev;
 
 static esp_err_t read_reg(uint8_t reg, uint8_t* value) {
     return i2c_master_transmit_receive(s_dev, &reg, 1, value, 1, I2C_TIMEOUT_MS);
+}
+
+static esp_err_t write_reg(uint8_t reg, uint8_t value) {
+    const uint8_t buf[2] = {reg, value};
+    return i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TIMEOUT_MS);
 }
 
 static esp_err_t set_bits(uint8_t reg, uint8_t bits) {
@@ -45,6 +53,8 @@ esp_err_t axp2101_init(i2c_master_bus_handle_t bus) {
     uint8_t status;
     ESP_RETURN_ON_ERROR(read_reg(REG_STATUS1, &status), TAG, "not responding");
     ESP_RETURN_ON_ERROR(set_bits(REG_BAT_DET_CTRL, BAT_DETECT_EN), TAG, "enable detection");
+    ESP_RETURN_ON_ERROR(set_bits(REG_INT_ENABLE2, INT2_PKEY_SHORT), TAG, "enable power key");
+    ESP_RETURN_ON_ERROR(write_reg(REG_INT_STATUS2, INT2_PKEY_SHORT), TAG, "clear power key");
     return set_bits(REG_ADC_CHANNEL_CTRL, ADC_BATTERY_VOLTAGE);
 }
 
@@ -62,4 +72,11 @@ esp_err_t axp2101_read(int* percent, bool* charging, bool* usb_power) {
     ESP_RETURN_ON_ERROR(read_reg(REG_BAT_PERCENT, &pct), TAG, "percent");
     *percent = pct > 100 ? 100 : pct;
     return ESP_OK;
+}
+
+esp_err_t axp2101_power_key_pressed(bool* pressed) {
+    uint8_t status;
+    ESP_RETURN_ON_ERROR(read_reg(REG_INT_STATUS2, &status), TAG, "int status");
+    *pressed = status & INT2_PKEY_SHORT;
+    return *pressed ? write_reg(REG_INT_STATUS2, INT2_PKEY_SHORT) : ESP_OK;
 }

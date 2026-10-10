@@ -19,12 +19,23 @@ typedef struct {
     int age_s; /* age of the oldest price, -1 if unknown */
 } equity_summary_t;
 
+#define EQUITY_TOP_COUNT 3
+
+/* The best performing holdings, best first. Shown under the figures while the screen is idle. */
+typedef struct {
+    int count; /* 0 to EQUITY_TOP_COUNT */
+    char symbol[EQUITY_TOP_COUNT][12];
+    float pct[EQUITY_TOP_COUNT];
+} equity_top_t;
+
 /* Called with "eq_reveal" when the screen is tapped. */
 typedef void (*equity_ui_cmd_cb_t)(const char* cmd);
 
 /* Portfolio return in big type; tapping shows the amounts for a few seconds. */
 void equity_ui_create(lv_obj_t* screen, equity_ui_cmd_cb_t on_cmd);
 void equity_ui_update(const equity_summary_t* summary);
+
+void equity_ui_set_top(const equity_top_t* top);
 
 /* Standby: the screen goes back to its normal look, and idle detection stops until resumed. */
 void equity_ui_suspend(void);

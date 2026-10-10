@@ -30,6 +30,12 @@ Apps: `spotify` (now playing) and `equity` (EquityWatch portfolio return), both 
 `ci` (GitHub Actions status) and `cpu` (host CPU gauge), which are off by default: turn them on under
 *Dot: Apps* in menuconfig.
 
+### Brightness (AMOLED)
+
+A short press of the PWR button steps the brightness through 5, 15, 30, 60 and 100%, with a small
+note at the bottom of the screen. The choice is kept across restarts; idle dimming, the app fade
+and rotation all return to it. Holding the button still powers the board off, as before.
+
 ### Status row (AMOLED)
 
 The AMOLED board shows a row at the bottom of every screen: USB cable, Wi-Fi, Bluetooth and the
