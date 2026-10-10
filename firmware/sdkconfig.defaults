@@ -11,4 +11,23 @@ CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
 CONFIG_SPIRAM_RODATA=y
 
 # LVGL
+CONFIG_LV_FONT_MONTSERRAT_16=y
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_24=y
 CONFIG_LV_FONT_MONTSERRAT_48=y
+CONFIG_LV_FONT_DEFAULT_MONTSERRAT_16=y
+
+# Speed. LVGL draws in software and its code and data run through the caches, so the clock, the
+# optimization level and the data cache set how fast a screen redraws. Leave the instruction
+# cache at 16 KB: 32 KB boots with ESP-IDF 6.0 but makes the PlatformIO build (ESP-IDF 5.5) reset
+# in a loop before it logs anything.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP32S3_DATA_CACHE_64KB=y
+CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
+
+# Radios (Dot: Radios, AMOLED only). NimBLE is the small Bluetooth LE host, and Wi-Fi/lwIP buffers
+# go to PSRAM to leave internal RAM for the display's draw buffers.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y

@@ -263,6 +263,10 @@ dev = [
     { name = "types-psutil" },
     { name = "types-requests" },
 ]
+equity = [
+    { name = "python-dotenv" },
+    { name = "requests" },
+]
 spotify = [
     { name = "pillow" },
     { name = "python-dotenv" },
@@ -277,14 +281,16 @@ requires-dist = [
     { name = "psutil", marker = "extra == 'cpu'", specifier = ">=5.9" },
     { name = "pyserial", specifier = ">=3.5" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "python-dotenv", marker = "extra == 'equity'", specifier = ">=1.0" },
     { name = "python-dotenv", marker = "extra == 'spotify'", specifier = ">=1.0" },
+    { name = "requests", marker = "extra == 'equity'", specifier = ">=2.31" },
     { name = "requests", marker = "extra == 'spotify'", specifier = ">=2.31" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
     { name = "spotipy", marker = "extra == 'spotify'", specifier = ">=2.24" },
     { name = "types-psutil", marker = "extra == 'dev'" },
     { name = "types-requests", marker = "extra == 'dev'" },
 ]
-provides-extras = ["cpu", "spotify", "dev"]
+provides-extras = ["cpu", "equity", "spotify", "dev"]
 
 [[package]]
 name = "idna"

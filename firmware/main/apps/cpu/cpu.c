@@ -33,6 +33,7 @@ static void update(void) {
 }
 
 const app_t cpu_app = {
+    .name = "cpu",
     .prefix = "CPU:",
     .create_ui = cpu_ui_create,
     .parse = parse,

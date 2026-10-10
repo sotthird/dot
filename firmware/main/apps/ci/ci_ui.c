@@ -154,12 +154,10 @@ static void ci_show_refreshing(void) {
     lv_timer_set_repeat_count(ci_refresh_timer, 1);
 }
 
-void ci_ui_create(ci_ui_cmd_cb_t on_cmd) {
+void ci_ui_create(lv_obj_t* scr, ci_ui_cmd_cb_t on_cmd) {
     ci_cmd_cb = on_cmd;
 
-    lv_obj_t* scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x121212), 0);
-    lv_screen_load(scr);
 
     ci_repo_label = lv_label_create(scr);
     lv_label_set_text(ci_repo_label, "CI Status");
@@ -213,6 +211,9 @@ void ci_ui_create(ci_ui_cmd_cb_t on_cmd) {
 
     ci_sub_label = lv_label_create(ci_center);
     lv_label_set_text(ci_sub_label, "");
+    lv_label_set_long_mode(ci_sub_label, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(ci_sub_label, CI_CENTER_SIZE - 30);
+    lv_obj_set_style_text_align(ci_sub_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(ci_sub_label, lv_color_hex(0xEAEAEA), 0);
 
     ci_title_label = lv_label_create(scr);
@@ -288,4 +289,17 @@ void ci_ui_update(const ci_status_t* s) {
 
     /* Remember the rendered status so a refresh tap can revert to it on timeout. */
     ci_last = *s;
+}
+
+void ci_ui_suspend(void) {
+    if (ci_refresh_timer) {
+        lv_timer_delete(ci_refresh_timer);
+        ci_refresh_timer = NULL;
+    }
+    ci_stop_dots();
+    ci_stop_ring_pulse();
+}
+
+void ci_ui_resume(void) {
+    ci_ui_update(&ci_last);
 }

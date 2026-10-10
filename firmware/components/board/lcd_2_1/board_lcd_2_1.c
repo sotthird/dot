@@ -126,7 +126,7 @@ static void backlight_init(void) {
     ESP_ERROR_CHECK(ledc_channel_config(&channel));
 }
 
-void board_set_brightness(uint8_t percent) {
+void board_hw_set_brightness(uint8_t percent) {
     if (percent > 100)
         percent = 100;
     /* Duty rises 81 counts per percent up to full scale; 0 is fully off */

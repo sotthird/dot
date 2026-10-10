@@ -41,12 +41,10 @@ static lv_obj_t* make_ctrl_btn(lv_obj_t* parent, const char* symbol, const char*
     return lbl;
 }
 
-void spotify_ui_create(spotify_ui_cmd_cb_t on_cmd) {
+void spotify_ui_create(lv_obj_t* scr, spotify_ui_cmd_cb_t on_cmd) {
     s_cmd_cb = on_cmd;
 
-    lv_obj_t* scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x121212), 0);
-    lv_screen_load(scr);
 
     spotify_header = lv_label_create(scr);
     lv_label_set_text(spotify_header, "Now Playing");
@@ -86,14 +84,14 @@ void spotify_ui_create(spotify_ui_cmd_cb_t on_cmd) {
 #if LV_FONT_MONTSERRAT_20
     lv_obj_set_style_text_font(spotify_track_label, &lv_font_montserrat_20, 0);
 #endif
-    lv_obj_align(spotify_track_label, LV_ALIGN_TOP_MID, 0, 252);
+    lv_obj_align(spotify_track_label, LV_ALIGN_TOP_MID, 0, 246);
 
     spotify_artist_label = lv_label_create(scr);
     lv_label_set_text(spotify_artist_label, "---");
     lv_label_set_long_mode(spotify_artist_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_width(spotify_artist_label, 340);
     lv_obj_set_style_text_color(spotify_artist_label, lv_color_hex(0xB3B3B3), 0);
-    lv_obj_align(spotify_artist_label, LV_ALIGN_TOP_MID, 0, 274);
+    lv_obj_align(spotify_artist_label, LV_ALIGN_TOP_MID, 0, 278);
 
     spotify_progress_bar = lv_bar_create(scr);
     lv_obj_set_size(spotify_progress_bar, 300, 6);
@@ -103,12 +101,12 @@ void spotify_ui_create(spotify_ui_cmd_cb_t on_cmd) {
     lv_obj_set_style_bg_color(spotify_progress_bar, lv_color_hex(0x1DB954), LV_PART_INDICATOR);
     lv_obj_set_style_radius(spotify_progress_bar, 3, LV_PART_MAIN);
     lv_obj_set_style_radius(spotify_progress_bar, 3, LV_PART_INDICATOR);
-    lv_obj_align(spotify_progress_bar, LV_ALIGN_TOP_MID, 0, 304);
+    lv_obj_align(spotify_progress_bar, LV_ALIGN_TOP_MID, 0, 310);
 
     spotify_time_label = lv_label_create(scr);
     lv_label_set_text(spotify_time_label, "0:00 / 0:00");
     lv_obj_set_style_text_color(spotify_time_label, lv_color_hex(0x535353), 0);
-    lv_obj_align(spotify_time_label, LV_ALIGN_TOP_MID, 0, 319);
+    lv_obj_align(spotify_time_label, LV_ALIGN_TOP_MID, 0, 322);
 
     spotify_ctrl_btns[0] = lv_obj_get_parent(make_ctrl_btn(scr, LV_SYMBOL_PREV, "prev", -95));
     btn_play_pause_label = make_ctrl_btn(scr, LV_SYMBOL_PLAY, "play_pause", 0);
@@ -141,7 +139,7 @@ void spotify_ui_update(const spotify_track_t* t) {
     }
 
     if (spotify_time_label) {
-        char cur[8], tot[8], buf[20];
+        char cur[16], tot[16], buf[40];
         ms_to_str(progress_ms, cur, sizeof(cur));
         ms_to_str(duration_ms, tot, sizeof(tot));
         snprintf(buf, sizeof(buf), "%s / %s", cur, tot);

@@ -21,5 +21,10 @@ typedef struct {
 typedef void (*ci_ui_cmd_cb_t)(const char* cmd);
 
 /* Whole-screen status orb: green passing, amber and pulsing while running, red on failure. */
-void ci_ui_create(ci_ui_cmd_cb_t on_cmd);
+void ci_ui_create(lv_obj_t* screen, ci_ui_cmd_cb_t on_cmd);
 void ci_ui_update(const ci_status_t* status);
+
+/* On standby nothing animates; resuming redraws the last status, restarting the pulse if running.
+ */
+void ci_ui_suspend(void);
+void ci_ui_resume(void);

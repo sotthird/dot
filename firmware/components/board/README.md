@@ -44,6 +44,7 @@ pin and no I/O expander: brightness is a panel command. Code lives in `lcd_2_16/
 | Touch INT / reset | GPIO 11 / 40 |
 | Touch address | 0x5A |
 | Accelerometer address | 0x6B |
+| Power management (AXP2101) address | 0x34 |
 
 The panel and touch drivers are Espressif's `esp_lcd_co5300` and Waveshare's
 `esp_lcd_touch_cst9217`, fetched by the component manager. The init sequence is Waveshare's, with

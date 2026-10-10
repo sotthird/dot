@@ -1,20 +1,52 @@
-menu "Dot: App"
+menu "Dot: Apps"
 
-    choice DOT_APP
-        prompt "App to run on the display"
-        default DOT_APP_CI
+    comment "Swipe left or right to move between the enabled apps. Only the one on screen runs."
+
+    config DOT_APP_CI
+        bool "CI status orb"
+        default n
+
+    config DOT_APP_SPOTIFY
+        bool "Spotify now playing"
+        default y
+
+    config DOT_APP_CPU
+        bool "CPU gauge"
+        default n
+
+    config DOT_APP_EQUITY
+        bool "EquityWatch portfolio"
+        default y
+
+endmenu
+
+menu "Dot: Radios"
+    depends on DOT_BOARD_AMOLED_2_16
+
+    comment "Wi-Fi and Bluetooth LE only connect and show their status for now."
+
+    config DOT_WIFI
+        bool "Wi-Fi"
+        default y
+
+    config DOT_WIFI_SSID
+        string "Network name (SSID)"
+        depends on DOT_WIFI
+        default ""
         help
-            Each app owns the whole screen, so exactly one runs at a time. The
-            host side must run the matching app (see host/README).
+            Leave empty to keep Wi-Fi off. Kept in the local, git-ignored sdkconfig.
 
-        config DOT_APP_CI
-            bool "CI status orb"
+    config DOT_WIFI_PASSWORD
+        string "Network password"
+        depends on DOT_WIFI
+        default ""
 
-        config DOT_APP_SPOTIFY
-            bool "Spotify now playing"
-
-        config DOT_APP_CPU
-            bool "CPU gauge"
-    endchoice
+    config DOT_BLUETOOTH
+        bool "Bluetooth LE"
+        default y
+        select BT_ENABLED
+        help
+            Advertises as "dot" and reports when a device connects. Needs the NimBLE host, which
+            sdkconfig.defaults selects (a Kconfig select cannot pick a choice member).
 
 endmenu

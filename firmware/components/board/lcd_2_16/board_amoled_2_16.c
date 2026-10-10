@@ -1,6 +1,7 @@
 /* Waveshare ESP32-S3-Touch-AMOLED-2.16: CO5300 QSPI AMOLED, CST9217 touch, no backlight pin
  * (brightness is a panel command). */
 
+#include "axp2101.h"
 #include "board_priv.h"
 #include "driver/i2c_master.h"
 #include "driver/spi_master.h"
@@ -32,6 +33,7 @@ static const char* TAG = "board";
 #define LCD_SPI_HOST SPI2_HOST
 
 static esp_lcd_panel_handle_t s_panel;
+static bool s_have_pmu;
 
 /* Waveshare's init sequence. 0x36 (MADCTL) is the panel's scan direction: Waveshare ships 0xA0
  * (swap X/Y + mirror Y), which showed the image rotated 90 degrees here, so it is 0x00. */
@@ -83,7 +85,7 @@ static esp_lcd_panel_io_handle_t panel_init(void) {
     return io;
 }
 
-void board_set_brightness(uint8_t percent) {
+void board_hw_set_brightness(uint8_t percent) {
     if (!s_panel)
         return;
     if (percent > 100)
@@ -120,6 +122,7 @@ static esp_lcd_touch_handle_t touch_init(i2c_master_bus_handle_t bus) {
         .rst_gpio_num = PIN_TOUCH_RST,
         .int_gpio_num = PIN_TOUCH_INT,
         .levels = {.reset = 0, .interrupt = 0},
+        .interrupt_callback = board_touch_isr,
         .flags = {.swap_xy = 1, .mirror_x = 1, .mirror_y = 0},
     };
     esp_lcd_touch_handle_t touch;
@@ -132,6 +135,15 @@ static esp_err_t read_accel_xy(float* ax, float* ay) {
     return qmi8658_read_accel(ax, ay, &az);
 }
 
+bool board_battery_read(int* percent, bool* charging, bool* usb_power) {
+    return s_have_pmu && axp2101_read(percent, charging, usb_power) == ESP_OK;
+}
+
+bool board_power_button_pressed(void) {
+    bool pressed = false;
+    return s_have_pmu && axp2101_power_key_pressed(&pressed) == ESP_OK && pressed;
+}
+
 void board_hw_init(board_hw_t* hw) {
     hw->panel_io = panel_init();
     hw->panel = s_panel;
@@ -141,6 +153,11 @@ void board_hw_init(board_hw_t* hw) {
 
     i2c_master_bus_handle_t bus = i2c_init();
     hw->touch = touch_init(bus);
+    hw->touch_irq = true;
+
+    s_have_pmu = axp2101_init(bus) == ESP_OK;
+    if (!s_have_pmu)
+        ESP_LOGW(TAG, "power management chip not found, no battery status");
 
     /* Without the accelerometer the display just stays in its default orientation */
     if (qmi8658_init(bus) == ESP_OK)

@@ -18,7 +18,7 @@ typedef struct {
 /* Called with "prev", "play_pause" or "next" when a transport button is tapped. */
 typedef void (*spotify_ui_cmd_cb_t)(const char* cmd);
 
-void spotify_ui_create(spotify_ui_cmd_cb_t on_cmd);
+void spotify_ui_create(lv_obj_t* screen, spotify_ui_cmd_cb_t on_cmd);
 void spotify_ui_update(const spotify_track_t* track);
 
 /* Show album art (RGB565, w x h, borrowed: must stay valid) and theme the UI with `color`. */

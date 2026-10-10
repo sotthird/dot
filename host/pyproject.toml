@@ -8,6 +8,7 @@ dependencies = ["pyserial>=3.5"]
 
 [project.optional-dependencies]
 cpu = ["psutil>=5.9"]
+equity = ["requests>=2.31", "python-dotenv>=1.0"]
 spotify = ["spotipy>=2.24", "python-dotenv>=1.0", "pillow>=10.0", "requests>=2.31"]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.10", "types-requests", "types-psutil"]
 
