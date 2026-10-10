@@ -132,6 +132,7 @@ class FakeSession:
 def make_equity_app(session):
     app = equity.EquityApp()
     app._session = session
+    app._clock = lambda: NOW
     return app
 
 

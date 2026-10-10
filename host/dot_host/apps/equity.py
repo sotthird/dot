@@ -108,7 +108,8 @@ class EquityApp(App):
         self._password = ""
         self._session = requests.Session()
         self._signed_in = False
-        self._last_fetch = 0.0
+        self._last_fetch: float | None = None  # monotonic() can be < FETCH_INTERVAL after boot
+        self._clock = lambda: datetime.now(UTC)
         self._portfolio: dict | None = None
         self._reveal = False
 
@@ -151,7 +152,7 @@ class EquityApp(App):
         return "ok"
 
     def on_activate(self) -> None:
-        self._last_fetch = 0.0
+        self._last_fetch = None
 
     def on_command(self, cmd: str) -> None:
         if cmd == "eq_reveal":
@@ -161,11 +162,11 @@ class EquityApp(App):
     def poll(self) -> list[str | bytes]:
         messages: list[str | bytes] = []
         now = time.monotonic()
-        if now - self._last_fetch >= FETCH_INTERVAL:
+        if self._last_fetch is None or now - self._last_fetch >= FETCH_INTERVAL:
             self._last_fetch = now
             result = self._fetch()
             if result == "ok" and self._portfolio is not None:
-                msg = summary_message(self._portfolio, datetime.now(UTC))
+                msg = summary_message(self._portfolio, self._clock())
                 print(f"EquityWatch: {msg.strip().removeprefix('EQ:S|')}")
                 messages.append(msg)
                 messages.append(top_message(self._portfolio))
