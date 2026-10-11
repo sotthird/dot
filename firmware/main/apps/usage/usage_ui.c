@@ -133,7 +133,10 @@ void usage_ui_update(const char* today, const char* five_hours, const char* week
         return;
 
     char buf[48];
-    snprintf(buf, sizeof(buf), "Today: %s tokens, %s msgs", today, messages);
+    if (today[0] == '-') /* standalone: no transcripts, so no token counts */
+        snprintf(buf, sizeof(buf), "Claude plan usage");
+    else
+        snprintf(buf, sizeof(buf), "Today: %s tokens, %s msgs", today, messages);
     lv_label_set_text(summary_label, buf);
 
     set_window(&five_hours_win, five_hours, pct_5h, reset_5h);

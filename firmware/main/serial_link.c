@@ -8,6 +8,8 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_system.h"
+#include "settings.h"
 
 #define LINE_BYTES 256
 
@@ -26,9 +28,30 @@ static void image_rx_finish(image_rx_t* rx) {
         app_handle_image(rx->dst, rx->w, rx->h, rx->color);
 }
 
+/* CFG:<key>|<value> stores a setting, CFG:REBOOT restarts. Answers CFG:OK or CFG:ERR. Handled
+ * here, not by an app, so it works whichever screen is showing. Values are never logged. */
+static void on_config(const char* arg) {
+    if (strcmp(arg, "REBOOT") == 0) {
+        serial_link_send("CFG:OK\n");
+        vTaskDelay(pdMS_TO_TICKS(200));
+        esp_restart();
+    }
+    char key[16];
+    const char* sep = strchr(arg, '|');
+    if (!sep || (size_t)(sep - arg) >= sizeof(key)) {
+        serial_link_send("CFG:ERR\n");
+        return;
+    }
+    memcpy(key, arg, sep - arg);
+    key[sep - arg] = '\0';
+    serial_link_send(settings_set(key, sep + 1) ? "CFG:OK\n" : "CFG:ERR\n");
+}
+
 static void on_line(const char* line, image_rx_t* rx) {
     unsigned nbytes, color;
-    if (sscanf(line, "IMG:%dx%d:%u:%x", &rx->w, &rx->h, &nbytes, &color) == 4) {
+    if (strncmp(line, "CFG:", 4) == 0) {
+        on_config(line + 4);
+    } else if (sscanf(line, "IMG:%dx%d:%u:%x", &rx->w, &rx->h, &nbytes, &color) == 4) {
         rx->color = color;
         rx->dst = app_image_buffer(nbytes);
         rx->received = 0;

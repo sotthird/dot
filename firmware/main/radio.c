@@ -3,11 +3,13 @@
 #include <string.h>
 
 #include "esp_event.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "sdkconfig.h"
+#include "settings.h"
 
 #if CONFIG_DOT_BLUETOOTH
 #include "host/ble_hs.h"
@@ -45,8 +47,11 @@ static void on_wifi_event(void* arg, esp_event_base_t base, int32_t id, void* da
 }
 
 static void wifi_start(void) {
-    if (CONFIG_DOT_WIFI_SSID[0] == '\0') {
-        ESP_LOGI(TAG, "Wi-Fi off: no network set under Dot: Radios in menuconfig");
+    char ssid[33], password[65];
+    settings_get(SETTING_WIFI_SSID, ssid, sizeof(ssid), CONFIG_DOT_WIFI_SSID);
+    settings_get(SETTING_WIFI_PASS, password, sizeof(password), CONFIG_DOT_WIFI_PASSWORD);
+    if (ssid[0] == '\0') {
+        ESP_LOGI(TAG, "Wi-Fi off: no network yet; run `dot-host setup`");
         return;
     }
 
@@ -70,8 +75,8 @@ static void wifi_start(void) {
         esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_wifi_event, NULL));
 
     wifi_config_t cfg = {0};
-    strlcpy((char*)cfg.sta.ssid, CONFIG_DOT_WIFI_SSID, sizeof(cfg.sta.ssid));
-    strlcpy((char*)cfg.sta.password, CONFIG_DOT_WIFI_PASSWORD, sizeof(cfg.sta.password));
+    strlcpy((char*)cfg.sta.ssid, ssid, sizeof(cfg.sta.ssid));
+    strlcpy((char*)cfg.sta.password, password, sizeof(cfg.sta.password));
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_config(WIFI_IF_STA, &cfg));
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_start());
@@ -159,10 +164,19 @@ void radio_start(void) {
         return;
     }
 
-#if CONFIG_DOT_WIFI
-    wifi_start();
-#endif
+    /* Bluetooth first: its controller needs one large block of internal RAM, which Wi-Fi leaves
+     * too fragmented to find (ESP_ERR_NO_MEM) once it has started. */
+    ESP_LOGI(TAG, "free internal RAM before radios: %u",
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #if CONFIG_DOT_BLUETOOTH
     ble_start();
+    ESP_LOGI(TAG, "free internal RAM after Bluetooth: %u",
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+#endif
+#if CONFIG_DOT_WIFI
+    wifi_start();
+    ESP_LOGI(TAG, "free internal RAM after Wi-Fi: %u (largest block %u)",
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+             (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
 #endif
 }

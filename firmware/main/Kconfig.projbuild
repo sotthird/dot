@@ -22,6 +22,17 @@ menu "Dot: Apps"
         bool "Claude token usage"
         default n
 
+    config DOT_USAGE_STANDALONE
+        bool "Claude usage: fetch on the device, no host needed"
+        depends on DOT_APP_USAGE && DOT_WIFI
+        default y
+        help
+            The device asks api.anthropic.com for your 5-hour and 7-day plan utilization over
+            Wi-Fi, once a minute. Without a host it shows percentages and reset times, but not
+            token counts (those come from transcripts on your computer). While `dot-host usage`
+            is running the host's fuller data is shown instead. Needs a Wi-Fi board. Give the
+            device its Wi-Fi and Claude token once with `dot-host setup`.
+
 endmenu
 
 menu "Dot: Radios"

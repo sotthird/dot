@@ -96,7 +96,9 @@ def fetch_limits(token: str) -> dict[str, tuple[int, int]]:
             return parse_limits(response.headers, time.time())
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
-            raise LimitsUnavailable("the login token is expired; use Claude Code to renew it") from e
+            raise LimitsUnavailable(
+                "the login token is expired; use Claude Code to renew it"
+            ) from e
         raise LimitsUnavailable(f"HTTP {e.code}") from e
     except (urllib.error.URLError, OSError) as e:
         raise LimitsUnavailable(str(e)) from e

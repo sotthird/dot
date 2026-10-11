@@ -52,6 +52,11 @@ def create_apps(args: argparse.Namespace) -> dict[str, App]:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] == ["setup"]:
+        from . import setup
+
+        return setup.main(argv[1:])
     args = parse_args(argv)
     apps = create_apps(args)
     runner = Runner(apps)

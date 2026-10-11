@@ -3,9 +3,14 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "esp_timer.h"
+#include "usage_standalone.h"
 #include "usage_ui.h"
 
 #define FIELD_MAX 12
+#define HOST_QUIET_US (120LL * 1000000) /* standalone fetching resumes after this long */
+
+static volatile int64_t last_host_us = -HOST_QUIET_US;
 
 static struct {
     char today[FIELD_MAX];
@@ -36,7 +41,7 @@ static bool next_field(const char** p, char* dst) {
 
 /* US:S|<today>|<5h>|<7d>|<messages today>|<5h %>|<7d %>|<5h reset min>|<7d reset min>
  * A percentage or reset time of -1 (or a missing field) means the host does not know it. */
-static void parse(const char* line) {
+static void ingest(const char* line) {
     if (strncmp(line, "US:S|", 5) != 0)
         return;
 
@@ -63,6 +68,20 @@ static void parse(const char* line) {
     app_unlock();
 }
 
+static void parse(const char* line) {
+    last_host_us = esp_timer_get_time();
+    ingest(line);
+}
+
+static bool host_active(void) {
+    return esp_timer_get_time() - last_host_us < HOST_QUIET_US;
+}
+
+static void create_ui(lv_obj_t* screen) {
+    usage_ui_create(screen);
+    usage_standalone_start(ingest, host_active);
+}
+
 static void update(void) {
     app_lock();
     bool pending = latest.pending;
@@ -78,7 +97,7 @@ static void update(void) {
 const app_t usage_app = {
     .name = "usage",
     .prefix = "US:",
-    .create_ui = usage_ui_create,
+    .create_ui = create_ui,
     .parse = parse,
     .update = update,
 };

@@ -1,2 +1,5 @@
 CONFIG_DOT_BOARD_AMOLED_2_16=y
 CONFIG_DOT_APP_USAGE=y
+# No Bluetooth here: its controller takes ~67 KB of the ~100 KB of internal RAM left after the
+# display, and Wi-Fi (standalone usage) cannot start in what remains. Set to y to get it back.
+CONFIG_DOT_BLUETOOTH=n

@@ -39,6 +39,34 @@ CLAUDE_7D_LIMIT=30000000
 
 With neither, a card shows the token count and "no usage data".
 
+## Standalone (no host)
+
+For a device that works without `dot-host` running. On a Wi-Fi board (AMOLED) it is on by default.
+Give the device its network and token once, over USB:
+
+```bash
+pio run -e amoled_2_16 -t upload     # flash as usual
+dot-host setup                       # Wi-Fi name, password, Claude token (hidden); add --debug to watch the device log
+```
+
+It first asks whether you already have a token and, if not, offers to run `claude setup-token`
+for you. It prints each step (secrets only by length). The device saves them in its flash and restarts. From then on, once a minute, it sends the same
+1-token request as the host does and shows the 5-hour and 7-day percentages and reset times, using
+the reply's `Date` header as its clock (no SNTP). Run `dot-host setup` again to change them; a blank
+answer keeps the current value.
+
+- Make the token with `claude setup-token` on any computer where you are signed in (it starts with
+  `sk-ant-oat01-`). Do not copy `.credentials.json`: that token expires within hours and refreshing
+  it from the device would log Claude Code out.
+- Nothing secret is in the firmware image, the build or the repository. The values sit unencrypted
+  in the device's flash, so treat the device like a password.
+- Token counts and the message count need the transcripts, so they are not shown; the title reads
+  "Claude plan usage".
+- If `dot-host usage` is also running, its fuller data is shown and the device stays quiet; it
+  fetches again two minutes after the last host message.
+- The Wi-Fi name and password under *Dot: Radios* in menuconfig still work as defaults when
+  nothing has been set with `dot-host setup`.
+
 ## Protocol
 
 ```
@@ -47,9 +75,13 @@ US:S|<today>|<5h>|<7d>|<messages today>|<5h %>|<7d %>|<5h reset min>|<7d reset m
 
 The token counts are already abbreviated by the host. The percentages are whole numbers and the
 reset times are minutes; `-1` means unknown. For example `US:S|894.2k|557.5k|2.6M|104|28|9|295|9000`.
-The device also accepts the shorter older forms. It sends nothing back.
+Standalone mode feeds the same line to itself with `--` for the token counts. The device also accepts the shorter older forms. It sends nothing back.
 
 ## Files
 
-- Firmware: [`usage.c`](usage.c) (parsing), [`usage_ui.c`](usage_ui.c) (the screen)
+- Firmware: [`usage.c`](usage.c) (parsing), [`usage_standalone.c`](usage_standalone.c) (on-device fetch), [`usage_ui.c`](usage_ui.c) (the screen)
 - Host: [`host/dot_host/apps/usage.py`](../../../../host/dot_host/apps/usage.py)
+
+`dot-host setup` uses a separate set of lines, handled by the firmware whichever app is on screen:
+`CFG:<wifi_ssid|wifi_pass|claude_tok>|<value>` stores a value (the device answers `CFG:OK` or
+`CFG:ERR`), and `CFG:REBOOT` restarts it.
