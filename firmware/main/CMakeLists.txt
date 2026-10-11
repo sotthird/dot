@@ -14,6 +14,8 @@ idf_component_register(
         "apps/equity/equity_ui.c"
         "apps/spotify/spotify.c"
         "apps/spotify/spotify_ui.c"
+        "apps/usage/usage.c"
+        "apps/usage/usage_ui.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES
         board

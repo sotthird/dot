@@ -18,6 +18,10 @@ menu "Dot: Apps"
         bool "EquityWatch portfolio"
         default y
 
+    config DOT_APP_USAGE
+        bool "Claude token usage"
+        default n
+
 endmenu
 
 menu "Dot: Radios"

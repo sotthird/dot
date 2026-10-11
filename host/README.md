@@ -19,7 +19,7 @@ source.
 
 ```bash
 dot-host                          # every app whose extras are installed
-dot-host ci cpu                   # or just these; python -m dot_host works too
+dot-host ci cpu usage             # or just these; python -m dot_host works too
 
 dot-host --port /dev/ttyACM1
 ```

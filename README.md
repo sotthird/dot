@@ -27,8 +27,8 @@ menuconfig; they are shown in the order of `main/main.c`. Each app lives in
 and its touch actions.
 
 Apps: `spotify` (now playing) and `equity` (EquityWatch portfolio return), both on by default, and
-`ci` (GitHub Actions status) and `cpu` (host CPU gauge), which are off by default: turn them on under
-*Dot: Apps* in menuconfig.
+`ci` (GitHub Actions status), `cpu` (host CPU gauge) and `usage` (Claude Code token usage), which are
+off by default: turn them on under *Dot: Apps* in menuconfig.
 
 ### Brightness (AMOLED)
 
