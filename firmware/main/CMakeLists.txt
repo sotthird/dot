@@ -6,6 +6,7 @@ idf_component_register(
         "radio.c"
         "status_ui.c"
         "serial_link.c"
+        "settings.c"
         "apps/ci/ci.c"
         "apps/ci/ci_ui.c"
         "apps/cpu/cpu.c"
@@ -14,14 +15,19 @@ idf_component_register(
         "apps/equity/equity_ui.c"
         "apps/spotify/spotify.c"
         "apps/spotify/spotify_ui.c"
+        "apps/usage/usage.c"
+        "apps/usage/usage_standalone.c"
+        "apps/usage/usage_ui.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES
         board
         bt
         esp_driver_usb_serial_jtag
         esp_event
+        esp_http_client
         esp_netif
         esp_wifi
+        mbedtls
         heap
         nvs_flash
 )

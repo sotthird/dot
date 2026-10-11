@@ -3,6 +3,7 @@
 #include "apps/cpu/cpu.h"
 #include "apps/equity/equity.h"
 #include "apps/spotify/spotify.h"
+#include "apps/usage/usage.h"
 #include "board.h"
 #include "brightness.h"
 #include "freertos/FreeRTOS.h"
@@ -46,6 +47,9 @@ void app_main(void) {
 #endif
 #if CONFIG_DOT_APP_EQUITY
     app_register(&equity_app);
+#endif
+#if CONFIG_DOT_APP_USAGE
+    app_register(&usage_app);
 #endif
     app_create_uis();
 #if CONFIG_DOT_BOARD_AMOLED_2_16

@@ -4,7 +4,13 @@ from importlib import import_module
 
 from .base import App
 
-_APPS = {"ci": "CiApp", "cpu": "CpuApp", "equity": "EquityApp", "spotify": "SpotifyApp"}
+_APPS = {
+    "ci": "CiApp",
+    "cpu": "CpuApp",
+    "equity": "EquityApp",
+    "spotify": "SpotifyApp",
+    "usage": "UsageApp",
+}
 APP_NAMES = tuple(_APPS)
 
 __all__ = ["APP_NAMES", "App", "AppUnavailable", "create"]
