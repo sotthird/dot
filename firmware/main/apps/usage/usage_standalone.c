@@ -11,11 +11,11 @@
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "radio.h"
 #include "sdkconfig.h"
-#include "esp_timer.h"
 #include "settings.h"
 #include "usage_limiter.h"
 
@@ -23,7 +23,7 @@
 
 #define TAG "usage"
 #define API_URL "https://api.anthropic.com/v1/messages"
-#define API_BODY \
+#define API_BODY                                                 \
     "{\"model\":\"claude-haiku-4-5-20251001\",\"max_tokens\":1," \
     "\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}"
 #define POLL_MS 60000
@@ -126,8 +126,10 @@ static bool fetch(void) {
         return false;
     }
     if (status == 401 || status == 403) {
-        ESP_LOGW(TAG, "HTTP %d: the token is invalid or expired; make a new one with "
-                      "`claude setup-token`", status);
+        ESP_LOGW(TAG,
+                 "HTTP %d: the token is invalid or expired; make a new one with "
+                 "`claude setup-token`",
+                 status);
         return false;
     }
     if (!limits.has_5h || !limits.has_7d) {

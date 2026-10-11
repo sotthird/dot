@@ -7,5 +7,5 @@
  * budget is set, and the token count is shown alone. */
 void usage_ui_create(lv_obj_t* screen);
 void usage_ui_update(const char* today, const char* five_hours, const char* week,
-                     const char* messages, const char* pct_5h, const char* pct_7d, const char* reset_5h,
-                     const char* reset_7d);
+                     const char* messages, const char* pct_5h, const char* pct_7d,
+                     const char* reset_5h, const char* reset_7d);

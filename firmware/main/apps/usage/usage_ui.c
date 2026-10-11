@@ -91,14 +91,14 @@ static void tapped_cb(lv_event_t* e) {
     char buf[48];
     uint32_t wait_s = 0;
     switch (usage_standalone_refresh(&wait_s)) {
-    case USAGE_REFRESH_STARTED:
-        snprintf(buf, sizeof(buf), "Refreshing...");
-        break;
-    case USAGE_REFRESH_LIMITED:
-        snprintf(buf, sizeof(buf), "Easy: try again in %us", (unsigned)wait_s);
-        break;
-    default:
-        return;
+        case USAGE_REFRESH_STARTED:
+            snprintf(buf, sizeof(buf), "Refreshing...");
+            break;
+        case USAGE_REFRESH_LIMITED:
+            snprintf(buf, sizeof(buf), "Easy: try again in %us", (unsigned)wait_s);
+            break;
+        default:
+            return;
     }
     lv_label_set_text(summary_label, buf);
     /* If no reading arrives (the request failed), do not leave the message up */
