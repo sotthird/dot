@@ -15,7 +15,9 @@
 #include "freertos/task.h"
 #include "radio.h"
 #include "sdkconfig.h"
+#include "esp_timer.h"
 #include "settings.h"
+#include "usage_limiter.h"
 
 #if CONFIG_DOT_USAGE_STANDALONE
 
@@ -36,6 +38,13 @@ typedef struct {
 
 static usage_publish_fn publish;
 static usage_host_active_fn host_active;
+static TaskHandle_t task;
+static limiter_t limiter;
+static portMUX_TYPE limiter_lock = portMUX_INITIALIZER_UNLOCKED;
+
+static int64_t now_ms(void) {
+    return esp_timer_get_time() / 1000;
+}
 
 /* UTC struct tm to epoch seconds (newlib has no timegm). Days-from-civil, after H. Hinnant. */
 static time_t utc_seconds(const struct tm* tm) {
@@ -135,23 +144,47 @@ static bool fetch(void) {
 }
 
 static void usage_task(void* arg) {
+    uint32_t wait_ms = RETRY_MS;
     for (;;) {
+        /* Sleep until the next automatic refresh, or until a tap wakes us early. */
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_ms));
+
         if (radio_wifi_state() != RADIO_CONNECTED) {
-            vTaskDelay(pdMS_TO_TICKS(RETRY_MS));
+            wait_ms = RETRY_MS;
             continue;
         }
         /* While a host is feeding the app it has the token counts too: stay quiet. */
         bool ok = true;
-        if (!host_active())
+        if (!host_active()) {
+            portENTER_CRITICAL(&limiter_lock);
+            limiter_note_request(&limiter, now_ms());
+            portEXIT_CRITICAL(&limiter_lock);
             ok = fetch();
-        vTaskDelay(pdMS_TO_TICKS(ok ? POLL_MS : RETRY_MS));
+        }
+        wait_ms = ok ? POLL_MS : RETRY_MS;
     }
+}
+
+usage_refresh_t usage_standalone_refresh(uint32_t* wait_s) {
+    if (!task || radio_wifi_state() != RADIO_CONNECTED || host_active())
+        return USAGE_REFRESH_UNAVAILABLE;
+
+    int64_t wait = 0;
+    portENTER_CRITICAL(&limiter_lock);
+    bool allowed = limiter_try(&limiter, now_ms(), &wait);
+    portEXIT_CRITICAL(&limiter_lock);
+    if (!allowed) {
+        *wait_s = (uint32_t)((wait + 999) / 1000);
+        return USAGE_REFRESH_LIMITED;
+    }
+    xTaskNotifyGive(task);
+    return USAGE_REFRESH_STARTED;
 }
 
 void usage_standalone_start(usage_publish_fn publish_fn, usage_host_active_fn host_active_fn) {
     publish = publish_fn;
     host_active = host_active_fn;
-    xTaskCreate(usage_task, "usage", 8192, NULL, 3, NULL);
+    xTaskCreate(usage_task, "usage", 8192, NULL, 3, &task);
 }
 
 #else
@@ -159,6 +192,11 @@ void usage_standalone_start(usage_publish_fn publish_fn, usage_host_active_fn ho
 void usage_standalone_start(usage_publish_fn publish_fn, usage_host_active_fn host_active_fn) {
     (void)publish_fn;
     (void)host_active_fn;
+}
+
+usage_refresh_t usage_standalone_refresh(uint32_t* wait_s) {
+    (void)wait_s;
+    return USAGE_REFRESH_UNAVAILABLE;
 }
 
 #endif

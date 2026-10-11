@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "usage_standalone.h"
+
 #define COL_BG 0x121212 /* the status row fades into this */
 #define COL_PANEL 0x1f1f1e
 #define COL_TRACK 0x2a2a28
@@ -25,6 +27,7 @@ typedef struct {
 } window_t;
 
 static lv_obj_t* summary_label;
+static char title[48] = "Claude plan usage";
 static window_t five_hours_win;
 static window_t week_win;
 
@@ -78,6 +81,30 @@ static void make_window(lv_obj_t* scr, window_t* win, const char* pill_text, int
     lv_obj_set_pos(win->caption, 0, 100);
 }
 
+static void restore_title_cb(lv_timer_t* timer) {
+    lv_label_set_text(summary_label, title);
+}
+
+/* A tap anywhere refreshes the usage (standalone only); the title says what came of it until the
+ * next reading replaces it. Swipes never get here: the app switcher cancels the press first. */
+static void tapped_cb(lv_event_t* e) {
+    char buf[48];
+    uint32_t wait_s = 0;
+    switch (usage_standalone_refresh(&wait_s)) {
+    case USAGE_REFRESH_STARTED:
+        snprintf(buf, sizeof(buf), "Refreshing...");
+        break;
+    case USAGE_REFRESH_LIMITED:
+        snprintf(buf, sizeof(buf), "Easy: try again in %us", (unsigned)wait_s);
+        break;
+    default:
+        return;
+    }
+    lv_label_set_text(summary_label, buf);
+    /* If no reading arrives (the request failed), do not leave the message up */
+    lv_timer_set_repeat_count(lv_timer_create(restore_title_cb, 6000, NULL), 1);
+}
+
 void usage_ui_create(lv_obj_t* scr) {
     lv_obj_set_style_bg_color(scr, lv_color_hex(COL_BG), 0);
 
@@ -85,6 +112,7 @@ void usage_ui_create(lv_obj_t* scr) {
     lv_label_set_text(summary_label, "Claude tokens today");
     lv_obj_align(summary_label, LV_ALIGN_TOP_MID, 0, 28);
 
+    lv_obj_add_event_cb(scr, tapped_cb, LV_EVENT_CLICKED, NULL);
     make_window(scr, &five_hours_win, "5 hours", 68);
     make_window(scr, &week_win, "7 days", 68 + PANEL_H + 12);
 }
@@ -132,12 +160,11 @@ void usage_ui_update(const char* today, const char* five_hours, const char* week
     if (!summary_label)
         return;
 
-    char buf[48];
     if (today[0] == '-') /* standalone: no transcripts, so no token counts */
-        snprintf(buf, sizeof(buf), "Claude plan usage");
+        snprintf(title, sizeof(title), "Claude plan usage");
     else
-        snprintf(buf, sizeof(buf), "Today: %s tokens, %s msgs", today, messages);
-    lv_label_set_text(summary_label, buf);
+        snprintf(title, sizeof(title), "Today: %s tokens, %s msgs", today, messages);
+    lv_label_set_text(summary_label, title);
 
     set_window(&five_hours_win, five_hours, pct_5h, reset_5h);
     set_window(&week_win, week, pct_7d, reset_7d);

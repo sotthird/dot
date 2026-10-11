@@ -5,7 +5,7 @@ message count, then a card each for the last 5 hours and the last 7 days. A card
 plan utilization as a percentage, a rounded bar that turns amber from 50% and red from 80%, and
 when the window resets ("Resets in 4h 55m").
 
-No touch interaction. Off by default: turn it on under *Dot: Apps* in menuconfig.
+Off by default: turn it on under *Dot: Apps* in menuconfig.
 
 ## Host
 
@@ -62,6 +62,9 @@ answer keeps the current value.
   in the device's flash, so treat the device like a password.
 - Token counts and the message count need the transcripts, so they are not shown; the title reads
   "Claude plan usage".
+- Tap the screen to refresh right away. Taps are rate limited on the device: at most 3 a minute
+  and never within 5 seconds of the last request (the automatic one included). A tap over the limit
+  shows "Easy: try again in Ns" and sends nothing. Taps do nothing while a host is feeding the app.
 - If `dot-host usage` is also running, its fuller data is shown and the device stays quiet; it
   fetches again two minutes after the last host message.
 - The Wi-Fi name and password under *Dot: Radios* in menuconfig still work as defaults when
